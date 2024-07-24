@@ -21,6 +21,11 @@ const clientEntrypoints = [
     template: 'dialog/index.html',
   },
   {
+    name: 'CLIENT - Edit Dialog Demo',
+    filename: 'edit-dialog',
+    template: 'edit-dialog/index.html',
+  },
+  {
     name: 'CLIENT - Sidebar',
     filename: 'sidebar',
     template: 'sidebar/index.html',

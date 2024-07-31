@@ -12,13 +12,13 @@ export const onOpen = () => {
 };
 
 export const openCreateDiagramDialog = () => {
-  const code = checkChartsLimit();
-  if (code === 401) {
-    DocumentApp.getUi().alert(
-      'You have reached your five diagram limit on the Free tier.'
-    );
-    return;
-  }
+  // const code = checkChartsLimit();
+  // if (code === 401) {
+  //   DocumentApp.getUi().alert(
+  //     'You have reached your five diagram limit on the Free tier.'
+  //   );
+  //   return;
+  // }
   const html = HtmlService.createHtmlOutputFromFile('create-diagram-dialog')
     .append(
       `<script>
@@ -58,7 +58,6 @@ export const openEditDiagramDialog = () => {
 };
 
 export const openSelectDiagramDialog = () => {
-  const doc = DocumentApp.getActiveDocument();
   const html = HtmlService.createHtmlOutputFromFile('select-diagram-dialog')
     .append(
       `<script>

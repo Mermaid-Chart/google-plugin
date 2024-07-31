@@ -3,4 +3,6 @@ import EditDiagramDialog from './components/edit-diagram-dialog';
 
 import './styles.css';
 
-ReactDOM.render(<EditDiagramDialog />, document.getElementById('index'));
+const container = document.getElementById('index');
+const root = ReactDOM.createRoot(container);
+root.render(<EditDiagramDialog />);

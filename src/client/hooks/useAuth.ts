@@ -1,13 +1,18 @@
 import { useCallback, useEffect, useState } from 'react';
 import { serverFunctions } from '../utils/serverFunctions';
 
-interface AuthState {
-  authorized: boolean;
-  token?: string;
-  message?: string;
+type Status = 'idle' | 'loading' | 'success' | 'error';
+
+interface AuthorizedState {
+  authorized: true;
+  token: string;
 }
 
-type Status = 'idle' | 'loading' | 'success' | 'error';
+interface UnauthorizedState {
+  authorized: false;
+}
+
+type AuthState = AuthorizedState | UnauthorizedState;
 
 const useAuth = () => {
   const [authState, setAuthState] = useState<null | AuthState>(null);
@@ -17,7 +22,7 @@ const useAuth = () => {
     setAuthStatus('loading');
     try {
       const state = await serverFunctions.getAuthorizationState();
-      setAuthState(state);
+      setAuthState(state as AuthState);
       setAuthStatus('success');
     } catch (error) {
       console.log('Error getting auth data', error);
@@ -30,11 +35,15 @@ const useAuth = () => {
   }, [getAuth]);
 
   const signOut = async () => {
-    serverFunctions.resetOAuth();
-    setTimeout(getAuth, 2000);
+    try {
+      await serverFunctions.resetOAuth();
+      setTimeout(getAuth, 500);
+    } catch (error) {
+      console.error('Error revoking OAuth:', error);
+    }
   };
 
-  return { authState, authStatus, signOut };
+  return { authState, authStatus, getAuth, signOut };
 };
 
 export default useAuth;

@@ -1,54 +1,35 @@
 import { useEffect, useState } from 'react';
 import { buildUrl, handleDialogClose } from '../../utils/helpers';
 import { serverFunctions } from '../../utils/serverFunctions';
+import useAuth from '../../hooks/useAuth';
+import { CircularProgress, Container, Typography } from '@mui/material';
 
-interface AuthState {
-  authorized: boolean;
-  token?: string;
-  message?: string;
-}
-
-type Status = 'idle' | 'loading' | 'success' | 'error';
-
-const Dialog = () => {
+const CreateDiagramDialog = () => {
+  const { authState, authStatus } = useAuth();
   const [diagramsUrl, setDiagramsUrl] = useState('');
-  const [, setAuthState] = useState<null | AuthState>(null);
-  const [authStatus, setAuthStatus] = useState<Status>('idle');
 
   useEffect(() => {
-    const getAuth = async () => {
-      setAuthStatus('loading');
-      try {
-        const state = await serverFunctions.getAuthorizationState();
-        setAuthState(state);
-        setAuthStatus('success');
-
-        if (state.authorized) {
-          const url = buildUrl('/app/plugins/confluence/select', state.token);
-          setDiagramsUrl(url);
-        }
-      } catch (error) {
-        console.log('Error getting auth data', error);
-        setAuthStatus('error');
-      }
-    };
-
-    getAuth();
-  }, []);
+    if (!authState?.authorized) return;
+    // const url = buildUrl('/app/plugins/confluence/select', state.token);
+    const url = buildUrl(
+      '/app/diagrams/new?pluginSource=googledocs',
+      authState.token
+    );
+    setDiagramsUrl(url);
+  }, [authState]);
 
   useEffect(() => {
     const handleMessage = async (e: MessageEvent) => {
       const action = e.data.action;
-      console.log('action', action, e.data);
       if (action === 'save') {
         const data = e.data.data;
-        console.log(data);
         const metadata = new URLSearchParams({
           projectID: data.projectID,
           documentID: data.documentID,
           major: data.major,
           minor: data.minor,
         });
+
         try {
           await serverFunctions.insertBase64ImageWithMetadata(
             data.diagramImage,
@@ -68,8 +49,41 @@ const Dialog = () => {
     };
   }, []);
 
-  if (authStatus !== 'success') {
-    return null;
+  if (authStatus === 'idle' || authStatus === 'loading') {
+    return (
+      <Container
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          height: '96.5vh',
+        }}
+      >
+        <CircularProgress />
+      </Container>
+    );
+  }
+
+  if (authStatus === 'error') {
+    return (
+      <Container
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          height: '96.5vh',
+        }}
+      >
+        <Typography variant="h5" gutterBottom my={2} textAlign="center">
+          Error
+        </Typography>
+        <Typography paragraph textAlign="center">
+          Something went wrong. Please try again later.
+        </Typography>
+      </Container>
+    );
   }
 
   return (
@@ -87,4 +101,4 @@ const Dialog = () => {
   );
 };
 
-export default Dialog;
+export default CreateDiagramDialog;

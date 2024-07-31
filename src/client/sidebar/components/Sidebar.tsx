@@ -1,55 +1,63 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Button, CircularProgress, Container, Typography } from '@mui/material';
+import {
+  Button,
+  CircularProgress,
+  Container,
+  Typography,
+  Divider,
+  Box,
+  Tabs,
+  Tab,
+} from '@mui/material';
 import { serverFunctions } from '../../utils/serverFunctions';
-import LoadingOverlay from './LoadingOverlay';
+import LoadingOverlay from '../../components/loading-overlay';
 import { buildUrl } from '../../utils/helpers';
+import useAuth from '../../hooks/useAuth';
 
-interface AuthState {
-  authorized: boolean;
-  token?: string;
-  message?: string;
+interface ChartImage {
+  altDescription: string;
+  image: string;
 }
 
-type Status = 'idle' | 'loading' | 'success' | 'error';
-
 const Sidebar = () => {
-  const [authState, setAuthState] = useState<null | AuthState>(null);
-  const [authStatus, setAuthStatus] = useState<Status>('idle');
+  const [tab, setTab] = useState(0);
   const [overlayEnabled, setOverlayEnabled] = useState(false);
   const intervalRef = useRef<number | null>(null);
   const [diagramsUrl, setDiagramsUrl] = useState<string>('');
+  const [chartImages, setChartImages] = useState<ChartImage[]>([]);
+  const { authState, authStatus, getAuth, signOut } = useAuth();
 
-  const getAuth = useCallback(async () => {
-    setAuthStatus('loading');
+  useEffect(() => {
+    if (!authState?.authorized) return;
+    // const url = buildUrl('/app/plugins/confluence/select', state.token);
+    const url = buildUrl(
+      '/app/plugins/recent?pluginSource=googledocs',
+      authState.token
+    );
+    setDiagramsUrl(url);
+    if (intervalRef.current !== null) {
+      clearInterval(intervalRef?.current);
+      intervalRef.current = null;
+      setOverlayEnabled(false);
+    }
+  }, [authState]);
+
+  const getImages = useCallback(async () => {
     try {
-      const state = await serverFunctions.getAuthorizationState();
-      setAuthState(state);
-      setAuthStatus('success');
-      if (intervalRef.current !== null && state.authorized) {
-        clearInterval(intervalRef?.current);
-        intervalRef.current = null;
-        setOverlayEnabled(false);
-      }
-
-      if (state.authorized) {
-        const url = buildUrl('/app/plugins/confluence/select', state.token);
-        setDiagramsUrl(url);
-        localStorage.setItem('url', url);
-      }
+      const images = await serverFunctions.getChartImages();
+      setChartImages(images);
     } catch (error) {
-      console.log('Error getting auth data', error);
-      setAuthStatus('error');
+      console.error('Error getting images', error);
     }
   }, []);
 
   useEffect(() => {
-    getAuth();
-  }, [getAuth]);
+    getImages();
+  }, [getImages]);
 
   useEffect(() => {
     const handleMessage = async (e: MessageEvent) => {
       const action = e.data.action;
-      console.log('action', action, e.data);
       if (action === 'save') {
         const data = e.data.data;
         const metadata = new URLSearchParams({
@@ -101,13 +109,45 @@ const Sidebar = () => {
     }
   };
 
-  const handleLogOut = async () => {
-    serverFunctions.resetOAuth();
-    setTimeout(getAuth, 2000);
+  // const handleLogOut = async () => {
+  //   try {
+  //     await serverFunctions.revokeOAuth();
+  //     setTimeout(getAuth, 500);
+  //   } catch (error) {
+  //     console.error('Error revoking OAuth:', error);
+  //   }
+  // };
+
+  const handleDiagramsUpdate = async () => {
+    try {
+      await serverFunctions.syncImages();
+    } catch (error) {
+      console.error('Error updating all diagrams', error);
+    }
   };
 
-  const handleDialogOpen = () => {
-    serverFunctions.openDialog();
+  const handleSelectDiagram = async () => {
+    try {
+      await serverFunctions.openSelectDiagramDialog();
+    } catch (error) {
+      console.error('Error inserting diagram', error);
+    }
+  };
+
+  const handleCreateDiagram = async () => {
+    try {
+      await serverFunctions.openCreateDiagramDialog();
+    } catch (error) {
+      console.error('Error creating new diagram', error);
+    }
+  };
+
+  const handleSelectedImage = async (altDescription: string) => {
+    try {
+      await serverFunctions.selectChartImage(altDescription);
+    } catch (error) {
+      console.error('Error selecting image', error);
+    }
   };
 
   if (authStatus === 'idle' || authStatus === 'loading') {
@@ -153,59 +193,211 @@ const Sidebar = () => {
       <Container
         sx={{
           display: 'flex',
-          flexDirection: 'column',
+          justifyContent: 'space-between',
           alignItems: 'center',
-          paddingLeft: '0px',
-          paddingRight: '0px',
+          padding: '15px 20px',
         }}
       >
         <img
           src="https://jiratest.mermaidchart.com/icon_80x80.png"
           alt="mc"
-          width={80}
-          height={80}
-          style={{ marginTop: '20px' }}
+          width={30}
+          height={30}
         />
-        <Typography variant="h5" gutterBottom my={2} textAlign="center">
-          Welcome to Mermaid Chart
-        </Typography>
-        {authState?.authorized ? (
-          <>
-            <Typography paragraph textAlign="center">
-              You are logged in, click the button below to logout
-            </Typography>
-            <Button onClick={handleLogOut} color="primary" variant="text">
+        <>
+          {authState?.authorized ? (
+            <Button
+              onClick={signOut}
+              color="primary"
+              variant="outlined"
+              sx={{
+                textTransform: 'initial',
+              }}
+            >
               Logout
             </Button>
-            <iframe
-              src={diagramsUrl}
-              title="diagrams"
-              style={{
-                border: 'none',
-                marginTop: '20px',
-                width: '100%',
-                height: 'calc(100vh - 345px)',
-              }}
-            />
-          </>
-        ) : (
-          <>
-            <Typography paragraph textAlign="center">
-              To access your diagrams, log into your Mermaid Chart account
-            </Typography>
+          ) : (
             <Button
               onClick={handleLoginClick}
               color="primary"
-              variant="text"
-              disabled={!authState}
+              variant="outlined"
+              sx={{
+                textTransform: 'initial',
+              }}
             >
-              Connect to Mermaid Chart
+              Login
             </Button>
-            <Button onClick={handleDialogOpen} color="primary" variant="text">
-              Open Dialog
-            </Button>
-          </>
-        )}
+          )}
+        </>
+      </Container>
+      <Divider />
+      <Container
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          padding: '20px',
+          height: 'calc(100vh - 68px)',
+        }}
+      >
+        <div>
+          {authState?.authorized ? (
+            <>
+              <Typography title="h3" color={'#883a79'} mb={1}>
+                Create a new diagram
+              </Typography>
+              <Button
+                color="primary"
+                variant="outlined"
+                sx={{
+                  marginBottom: 2,
+                  textTransform: 'initial',
+                }}
+                onClick={handleCreateDiagram}
+              >
+                New diagram
+              </Button>
+              <Typography title="h3" color={'#883a79'} mb={1}>
+                Insert a diagram from Mermaid Chart
+              </Typography>
+              <Button
+                color="primary"
+                variant="outlined"
+                sx={{
+                  marginBottom: 2,
+                  textTransform: 'initial',
+                }}
+                onClick={handleSelectDiagram}
+              >
+                Browse diagrams
+              </Button>
+              <Typography title="h3" color={'#883a79'} mb={1}>
+                Update all diagrams in document to most recent version
+              </Typography>
+              <Button
+                color="primary"
+                variant="outlined"
+                sx={{
+                  textTransform: 'initial',
+                }}
+                onClick={handleDiagramsUpdate}
+              >
+                Update all diagrams
+              </Button>
+              <Box sx={{ width: '100%' }} mt={2}>
+                <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+                  <Tabs
+                    value={tab}
+                    onChange={(_, newValue) => setTab(newValue)}
+                    aria-label="basic tabs example"
+                  >
+                    <Tab
+                      label="Recent diagrams"
+                      sx={{
+                        textTransform: 'initial',
+                        padding: '12px 6px',
+                      }}
+                    />
+                    <Tab
+                      label="In this document"
+                      sx={{
+                        textTransform: 'initial',
+                        padding: '12px',
+                      }}
+                    />
+                  </Tabs>
+                </Box>
+                {tab === 0 ? (
+                  <iframe
+                    src={diagramsUrl}
+                    title="diagrams"
+                    style={{
+                      border: 'none',
+                      marginTop: '20px',
+                      width: '100%',
+                      height: 'calc(100vh - 520px)',
+                    }}
+                  />
+                ) : (
+                  <Container
+                    sx={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '20px',
+                      marginTop: '20px',
+                    }}
+                  >
+                    {chartImages.map((image) => (
+                      <div
+                        key={image.altDescription}
+                        onClick={() =>
+                          handleSelectedImage(image.altDescription)
+                        }
+                      >
+                        <img
+                          src={image.image}
+                          alt={image.altDescription}
+                          style={{
+                            width: '200px',
+                            height: 'auto',
+                            marginBottom: '10px',
+                            cursor: 'pointer',
+                          }}
+                        />
+                      </div>
+                    ))}
+                  </Container>
+                )}
+              </Box>
+            </>
+          ) : (
+            <>
+              <Typography title="h3" textAlign="center" color={'#883a79'}>
+                Create and edit diagrams in Mermaid Chart and easily synchronize
+                documents with Google Docs.
+              </Typography>
+              <Typography paragraph textAlign="center" mt={4} color={'#883a79'}>
+                Don't have an account?{' '}
+                <Button
+                  sx={{
+                    textTransform: 'initial',
+                    color: 'inherit',
+                    padding: 0,
+                    minWidth: 'auto',
+                    fontSize: 'inherit',
+                    '&:hover': {
+                      textDecoration: 'underline',
+                      backgroundColor: 'white',
+                    },
+                  }}
+                >
+                  Sign up
+                </Button>{' '}
+              </Typography>
+            </>
+          )}
+        </div>
+        <Container
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            padding: '0',
+          }}
+        >
+          <Typography paragraph textAlign="center" mb={0}>
+            <a
+              href="https://mermaidchart.com"
+              target="_blank"
+              rel="noreferrer"
+              style={{ color: '#883a79' }}
+            >
+              Copyright © 2024 Mermaid Chart
+            </a>
+          </Typography>
+        </Container>
       </Container>
     </>
   );

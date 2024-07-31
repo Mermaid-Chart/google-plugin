@@ -3,23 +3,23 @@ import { serverFunctions } from '../../utils/serverFunctions';
 import { buildUrl, handleDialogClose } from '../../utils/helpers';
 import useAuth from '../../hooks/useAuth';
 
-const EditDialog = () => {
+const EditDiagramDialog = () => {
   const { authState, authStatus } = useAuth();
   const [diagramsUrl, setDiagramsUrl] = useState('');
 
   useEffect(() => {
-    if (!authState) return;
+    if (!authState?.authorized) return;
+
     const getMetadata = async () => {
       try {
         const metadata = await serverFunctions.readSelectedImageMetadata();
-        console.log(metadata, 'metadata');
         if (typeof metadata === 'string') {
           const params = new URLSearchParams(metadata);
           const projectID = params.get('projectID');
           const documentID = params.get('documentID');
           const major = params.get('major');
           const minor = params.get('minor');
-          if (projectID && documentID && major && minor && authState?.token) {
+          if (projectID && documentID && major && minor) {
             const iframeUrl = buildUrl(
               `/app/projects/${projectID}/diagrams/${documentID}/version/v.${major}.${minor}/edit`,
               authState.token
@@ -31,6 +31,7 @@ const EditDialog = () => {
         console.log(error);
       }
     };
+
     getMetadata();
   }, [authState]);
 
@@ -84,4 +85,4 @@ const EditDialog = () => {
   );
 };
 
-export default EditDialog;
+export default EditDiagramDialog;

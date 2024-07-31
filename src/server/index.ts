@@ -1,7 +1,8 @@
 import {
   onOpen,
-  openDialog,
-  openEditDialog,
+  openCreateDiagramDialog,
+  openEditDiagramDialog,
+  openSelectDiagramDialog,
   openSidebar,
   getOAuthURL,
   handleCallback,
@@ -10,20 +11,19 @@ import {
   insertBase64ImageWithMetadata,
   replaceSelectedImageWithBase64AndSize,
   readSelectedImageMetadata,
+  syncImages,
+  selectChartImage,
+  getChartImages,
+  checkChartsLimit,
 } from './ui';
-
-import { getSheetsData, addSheet, deleteSheet, setActiveSheet } from './sheets';
 
 // Public functions must be exported as named exports
 export {
   onOpen,
-  openDialog,
-  openEditDialog,
+  openCreateDiagramDialog,
+  openEditDiagramDialog,
+  openSelectDiagramDialog,
   openSidebar,
-  getSheetsData,
-  addSheet,
-  deleteSheet,
-  setActiveSheet,
   getOAuthURL,
   handleCallback,
   getAuthorizationState,
@@ -31,4 +31,8 @@ export {
   insertBase64ImageWithMetadata,
   replaceSelectedImageWithBase64AndSize,
   readSelectedImageMetadata,
+  syncImages,
+  selectChartImage,
+  getChartImages,
+  checkChartsLimit,
 };

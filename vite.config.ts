@@ -16,14 +16,19 @@ const devServerWrapper = './dev/dev-server-wrapper.html';
 
 const clientEntrypoints = [
   {
-    name: 'CLIENT - Dialog Demo',
-    filename: 'dialog',
-    template: 'dialog/index.html',
+    name: 'CLIENT - Create Diagram Dialog',
+    filename: 'create-diagram-dialog',
+    template: 'create-diagram-dialog/index.html',
   },
   {
-    name: 'CLIENT - Edit Dialog Demo',
-    filename: 'edit-dialog',
-    template: 'edit-dialog/index.html',
+    name: 'CLIENT - Edit Diagram Dialog',
+    filename: 'edit-diagram-dialog',
+    template: 'edit-diagram-dialog/index.html',
+  },
+  {
+    name: 'CLIENT - Select Diagram Dialog',
+    filename: 'select-diagram-dialog',
+    template: 'select-diagram-dialog/index.html',
   },
   {
     name: 'CLIENT - Sidebar',

@@ -3,15 +3,23 @@ const baseURL = 'https://test.mermaidchart.com';
 export const onOpen = () => {
   const menu = DocumentApp.getUi()
     .createAddonMenu()
-    .addItem('Add Chart', 'openDialog')
-    .addItem('Edit Chart', 'openEditDialog')
-    .addItem('Open Sidebar', 'openSidebar');
+    .addItem('Start', 'openSidebar')
+    .addSeparator()
+    .addItem('Insert Diagram', 'openCreateDiagramDialog')
+    .addItem('Edit Diagram', 'openEditDiagramDialog');
 
   menu.addToUi();
 };
 
-export const openDialog = () => {
-  const html = HtmlService.createHtmlOutputFromFile('dialog')
+export const openCreateDiagramDialog = () => {
+  const code = checkChartsLimit();
+  if (code === 401) {
+    DocumentApp.getUi().alert(
+      'You have reached your five diagram limit on the Free tier.'
+    );
+    return;
+  }
+  const html = HtmlService.createHtmlOutputFromFile('create-diagram-dialog')
     .append(
       `<script>
       window.addEventListener('message', function(event) {
@@ -23,10 +31,10 @@ export const openDialog = () => {
     )
     .setWidth(1366)
     .setHeight(768);
-  DocumentApp.getUi().showModalDialog(html, 'Medmaid Chart Dialog');
+  DocumentApp.getUi().showModalDialog(html, 'Medmaid Chart');
 };
 
-export const openEditDialog = () => {
+export const openEditDiagramDialog = () => {
   const doc = DocumentApp.getActiveDocument();
   const selection = doc.getSelection();
 
@@ -34,7 +42,7 @@ export const openEditDialog = () => {
     DocumentApp.getUi().alert('No selection found. Please select an image.');
     return;
   }
-  const html = HtmlService.createHtmlOutputFromFile('edit-dialog')
+  const html = HtmlService.createHtmlOutputFromFile('edit-diagram-dialog')
     .append(
       `<script>
       window.addEventListener('message', function(event) {
@@ -46,7 +54,24 @@ export const openEditDialog = () => {
     )
     .setWidth(1366)
     .setHeight(768);
-  DocumentApp.getUi().showModalDialog(html, 'Edit Medmaid Chart Dialog');
+  DocumentApp.getUi().showModalDialog(html, 'Edit Diagram');
+};
+
+export const openSelectDiagramDialog = () => {
+  const doc = DocumentApp.getActiveDocument();
+  const html = HtmlService.createHtmlOutputFromFile('select-diagram-dialog')
+    .append(
+      `<script>
+      window.addEventListener('message', function(event) {
+        if (event.data === "closeDialog") {
+            google.script.host.close();
+        }
+      }, false);
+    </script>`
+    )
+    .setWidth(1366)
+    .setHeight(768);
+  DocumentApp.getUi().showModalDialog(html, 'Select Diagram');
 };
 
 export const openSidebar = () => {
@@ -106,7 +131,6 @@ export function getAuthorizationState() {
   }
   return {
     authorized: false,
-    message: 'User is not authorized',
   };
 }
 
@@ -281,4 +305,134 @@ export function replaceSelectedImageWithBase64AndSize(
   );
   setElementSize(insertedImage, maxWidth);
   insertedImage.setAltDescription(metadata);
+}
+
+function parseAltDescription(altDescription) {
+  const params = {};
+  const pairs = altDescription.split('&');
+  pairs.forEach((pair) => {
+    const [key, value] = pair.split('=');
+    params[key] = value;
+  });
+  return params;
+}
+
+export function syncImages(maxWidth = 400) {
+  const { token } = getAuthorizationState();
+  const body = DocumentApp.getActiveDocument().getBody();
+  const images = body.getImages();
+
+  images.forEach((image) => {
+    const altDescription = image.getAltDescription();
+    if (altDescription) {
+      // Parse the altDescription to extract documentID, major, and minor
+      const params = parseAltDescription(altDescription);
+      const documentID = params['documentID'];
+      const major = params['major'];
+      const minor = params['minor'];
+
+      if (documentID && major && minor && token) {
+        const newImageUrl = `${baseURL}/raw/${documentID}?version=v${major}.${minor}&theme=light&format=png`;
+
+        try {
+          // Fetch the new image as a blob with error handling
+          const response = UrlFetchApp.fetch(newImageUrl, {
+            muteHttpExceptions: true,
+            headers: {
+              Cookie: `mc-auth-token=${token}`,
+            },
+          });
+          if (response.getResponseCode() === 200) {
+            const blob = response.getBlob();
+            const parent = image.getParent();
+            const childIndex = parent.getChildIndex(image);
+            Logger.log(image.getAttributes());
+
+            // Remove the old image from its parent
+            parent.removeChild(image);
+
+            // Insert the new image at the same position within the parent
+            const insertedImage = parent.insertInlineImage(childIndex, blob);
+            setElementSize(insertedImage, maxWidth);
+            insertedImage.setAltDescription(altDescription);
+          } else {
+            Logger.log(`Failed to fetch image: ${response.getContentText()}`);
+            Logger.log(newImageUrl);
+          }
+        } catch (error) {
+          Logger.log(`Error fetching image: ${error.message}`);
+        }
+      }
+    }
+  });
+}
+
+export const getChartImages = () => {
+  const body = DocumentApp.getActiveDocument().getBody();
+  const images = body.getImages();
+  const imageBase64Strings = [];
+
+  for (let i = 0; i < images.length; i++) {
+    const image = images[i];
+    const altDescription = image.getAltDescription();
+    if (!altDescription) continue;
+    const blob = image.getBlob();
+    const base64String = Utilities.base64Encode(blob.getBytes());
+    const mimeType = blob.getContentType();
+    const dataUrl = 'data:' + mimeType + ';base64,' + base64String;
+
+    const imageObject = {
+      altDescription: image.getAltDescription(),
+      image: dataUrl,
+    };
+
+    imageBase64Strings.push(imageObject);
+  }
+
+  return imageBase64Strings;
+};
+
+export const selectChartImage = (altDescription) => {
+  if (!altDescription) {
+    Logger.log('No altDescription provided.');
+    return;
+  }
+  const body = DocumentApp.getActiveDocument().getBody();
+  const images = body.getImages();
+  const selectedImage = images.find(
+    (image) => image.getAltDescription() === altDescription
+  );
+
+  if (!selectedImage) {
+    Logger.log('No image found with the provided altDescription.');
+    return;
+  }
+
+  // Create a range that includes the second image
+  const rangeBuilder = DocumentApp.getActiveDocument().newRange();
+  rangeBuilder.addElement(selectedImage);
+  const range = rangeBuilder.build();
+
+  // Set the selection to the range that includes the second image
+  DocumentApp.getActiveDocument().setSelection(range);
+};
+
+export function checkChartsLimit() {
+  const { token } = getAuthorizationState();
+
+  // Fetch the new image as a blob with error handling
+  const response = UrlFetchApp.fetch(
+    `${baseURL}/app/diagrams/new?pluginSource=googledocs`,
+    {
+      muteHttpExceptions: true,
+      headers: {
+        Cookie: `mc-auth-token=${token}`,
+      },
+    }
+  );
+  if (response.getResponseCode() === 402) {
+    DocumentApp.getUi().alert('No selection found. Please select an image.');
+    return;
+  }
+  return response.getResponseCode();
 }

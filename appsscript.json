@@ -15,22 +15,5 @@
     "https://www.googleapis.com/auth/script.external_request",
     "https://www.googleapis.com/auth/documents"
   ],
-  "addOns": {
-    "common": {
-      "name": "Mermaid Chart",
-      "logoUrl": "https://www.mermaidchart.com/img/mermaid-chart-48.png",
-      "useLocaleFromApp": true,
-      "universalActions": [
-        {
-          "label": "Learn more about Mermaid Chart",
-          "openLink": "www.mermaidchart.com"
-        }
-      ],
-      "layoutProperties": {
-        "primaryColor": "#424242",
-        "secondaryColor": "#ff3670"
-      }
-    }
-  },
   "runtimeVersion": "V8"
 }

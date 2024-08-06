@@ -3,6 +3,8 @@ import { serverFunctions } from '../../utils/serverFunctions';
 import { buildUrl, handleDialogClose } from '../../utils/helpers';
 import useAuth from '../../hooks/useAuth';
 
+const editUrl = localStorage.getItem('editUrl');
+
 const EditDiagramDialog = () => {
   const { authState, authStatus } = useAuth();
   const [diagramsUrl, setDiagramsUrl] = useState('');
@@ -12,20 +14,26 @@ const EditDiagramDialog = () => {
 
     const getMetadata = async () => {
       try {
+        if (editUrl) {
+          const iframeUrl = buildUrl(editUrl, authState.token);
+          setDiagramsUrl(iframeUrl);
+          localStorage.removeItem('editUrl');
+          return;
+        }
         const metadata = await serverFunctions.readSelectedImageMetadata();
-        if (typeof metadata === 'string') {
-          const params = new URLSearchParams(metadata);
-          const projectID = params.get('projectID');
-          const documentID = params.get('documentID');
-          const major = params.get('major');
-          const minor = params.get('minor');
-          if (projectID && documentID && major && minor) {
-            const iframeUrl = buildUrl(
-              `/app/projects/${projectID}/diagrams/${documentID}/version/v.${major}.${minor}/edit`,
-              authState.token
-            );
-            setDiagramsUrl(iframeUrl);
-          }
+        if (typeof metadata !== 'string') return;
+
+        const params = new URLSearchParams(metadata);
+        const projectID = params.get('projectID');
+        const documentID = params.get('documentID');
+        const major = params.get('major');
+        const minor = params.get('minor');
+        if (projectID && documentID && major && minor) {
+          const iframeUrl = buildUrl(
+            `/app/projects/${projectID}/diagrams/${documentID}/version/v.${major}.${minor}/edit`,
+            authState.token
+          );
+          setDiagramsUrl(iframeUrl);
         }
       } catch (error) {
         console.log(error);
@@ -33,7 +41,7 @@ const EditDiagramDialog = () => {
     };
 
     getMetadata();
-  }, [authState]);
+  }, [authState, editUrl]);
 
   useEffect(() => {
     const handleMessage = async (e: MessageEvent) => {

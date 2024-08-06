@@ -2,7 +2,9 @@ import {
   onOpen,
   openCreateDiagramDialog,
   openEditDiagramDialog,
+  openEditDiagramDialogWithUrl,
   openSelectDiagramDialog,
+  openPreviewDiagramDialog,
   openSidebar,
   getOAuthURL,
   handleCallback,
@@ -14,7 +16,6 @@ import {
   syncImages,
   selectChartImage,
   getChartImages,
-  checkChartsLimit,
 } from './ui';
 
 // Public functions must be exported as named exports
@@ -22,7 +23,9 @@ export {
   onOpen,
   openCreateDiagramDialog,
   openEditDiagramDialog,
+  openEditDiagramDialogWithUrl,
   openSelectDiagramDialog,
+  openPreviewDiagramDialog,
   openSidebar,
   getOAuthURL,
   handleCallback,
@@ -34,5 +37,4 @@ export {
   syncImages,
   selectChartImage,
   getChartImages,
-  checkChartsLimit,
 };

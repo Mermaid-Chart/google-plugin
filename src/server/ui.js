@@ -12,13 +12,6 @@ export const onOpen = () => {
 };
 
 export const openCreateDiagramDialog = () => {
-  // const code = checkChartsLimit();
-  // if (code === 401) {
-  //   DocumentApp.getUi().alert(
-  //     'You have reached your five diagram limit on the Free tier.'
-  //   );
-  //   return;
-  // }
   const html = HtmlService.createHtmlOutputFromFile('create-diagram-dialog')
     .append(
       `<script>
@@ -42,6 +35,7 @@ export const openEditDiagramDialog = () => {
     DocumentApp.getUi().alert('No selection found. Please select an image.');
     return;
   }
+
   const html = HtmlService.createHtmlOutputFromFile('edit-diagram-dialog')
     .append(
       `<script>
@@ -54,6 +48,41 @@ export const openEditDiagramDialog = () => {
     )
     .setWidth(1366)
     .setHeight(768);
+
+  DocumentApp.getUi().showModalDialog(html, 'Edit Diagram');
+};
+
+export const openPreviewDiagramDialog = () => {
+  const html = HtmlService.createHtmlOutputFromFile('preview-diagram-dialog')
+    .append(
+      `<script>
+      window.addEventListener('message', function(event) {
+        if (event.data === "closeDialog") {
+            google.script.host.close();
+        }
+      }, false);
+    </script>`
+    )
+    .setWidth(1366)
+    .setHeight(768);
+
+  DocumentApp.getUi().showModalDialog(html, 'Preview Diagram');
+};
+
+export const openEditDiagramDialogWithUrl = (editUrl) => {
+  const html = HtmlService.createHtmlOutputFromFile('edit-diagram-dialog')
+    .append(
+      `<script>
+      window.addEventListener('message', function(event) {
+        if (event.data === "closeDialog") {
+            google.script.host.close();
+        }
+      }, false);
+    </script>`
+    )
+    .setWidth(1366)
+    .setHeight(768);
+
   DocumentApp.getUi().showModalDialog(html, 'Edit Diagram');
 };
 
@@ -415,23 +444,3 @@ export const selectChartImage = (altDescription) => {
   // Set the selection to the range that includes the second image
   DocumentApp.getActiveDocument().setSelection(range);
 };
-
-export function checkChartsLimit() {
-  const { token } = getAuthorizationState();
-
-  // Fetch the new image as a blob with error handling
-  const response = UrlFetchApp.fetch(
-    `${baseURL}/app/diagrams/new?pluginSource=googledocs`,
-    {
-      muteHttpExceptions: true,
-      headers: {
-        Cookie: `mc-auth-token=${token}`,
-      },
-    }
-  );
-  if (response.getResponseCode() === 402) {
-    DocumentApp.getUi().alert('No selection found. Please select an image.');
-    return;
-  }
-  return response.getResponseCode();
-}

@@ -25,6 +25,10 @@ const Sidebar = () => {
   const intervalRef = useRef<number | null>(null);
   const [diagramsUrl, setDiagramsUrl] = useState<string>('');
   const [chartImages, setChartImages] = useState<ChartImage[]>([]);
+  const [chartImagesState, setChartImagesState] = useState('idle');
+  const [createDiagramState, setCreateDiagramState] = useState('idle');
+  const [selectDiagramState, setSelectDiagramState] = useState('idle');
+  const [updateDiagramsState, setUpdateDiagramsState] = useState('idle');
   const { authState, authStatus, getAuth, signOut } = useAuth();
 
   useEffect(() => {
@@ -44,20 +48,24 @@ const Sidebar = () => {
 
   const getImages = useCallback(async () => {
     try {
+      setChartImagesState('loading');
       const images = await serverFunctions.getChartImages();
       setChartImages(images);
+      setChartImagesState('success');
     } catch (error) {
       console.error('Error getting images', error);
+      setChartImagesState('error');
     }
   }, []);
 
   useEffect(() => {
     getImages();
-  }, [getImages]);
+  }, [getImages, tab]);
 
   useEffect(() => {
     const handleMessage = async (e: MessageEvent) => {
       const action = e.data.action;
+      console.log('action', action);
       if (action === 'save') {
         const data = e.data.data;
         const metadata = new URLSearchParams({
@@ -71,8 +79,27 @@ const Sidebar = () => {
             data.diagramImage,
             metadata.toString()
           );
+          getImages();
         } catch (error) {
           console.error('Error inserting image with metadata', error);
+        }
+      } else if (action === 'edit') {
+        const data = e.data;
+        if (!data.editUrl) return;
+        try {
+          localStorage.setItem('editUrl', data.editUrl);
+          await serverFunctions.openEditDiagramDialogWithUrl(data.editUrl);
+        } catch (error) {
+          console.error('Error opening edit dialog', error);
+        }
+      } else if (action === 'view') {
+        console.log(e.data);
+        if (!e.data.url) return;
+        try {
+          localStorage.setItem('previewUrl', e.data.url);
+          await serverFunctions.openPreviewDiagramDialog();
+        } catch (error) {
+          console.error('Error opening edit dialog', error);
         }
       }
     };
@@ -109,36 +136,36 @@ const Sidebar = () => {
     }
   };
 
-  // const handleLogOut = async () => {
-  //   try {
-  //     await serverFunctions.revokeOAuth();
-  //     setTimeout(getAuth, 500);
-  //   } catch (error) {
-  //     console.error('Error revoking OAuth:', error);
-  //   }
-  // };
-
   const handleDiagramsUpdate = async () => {
     try {
+      setUpdateDiagramsState('loading');
       await serverFunctions.syncImages();
+      setUpdateDiagramsState('success');
     } catch (error) {
       console.error('Error updating all diagrams', error);
+      setUpdateDiagramsState('error');
     }
   };
 
   const handleSelectDiagram = async () => {
     try {
+      setSelectDiagramState('loading');
       await serverFunctions.openSelectDiagramDialog();
+      setSelectDiagramState('success');
     } catch (error) {
       console.error('Error inserting diagram', error);
+      setSelectDiagramState('error');
     }
   };
 
   const handleCreateDiagram = async () => {
     try {
+      setCreateDiagramState('loading');
       await serverFunctions.openCreateDiagramDialog();
+      setCreateDiagramState('success');
     } catch (error) {
       console.error('Error creating new diagram', error);
+      setCreateDiagramState('error');
     }
   };
 
@@ -255,6 +282,7 @@ const Sidebar = () => {
                   textTransform: 'initial',
                 }}
                 onClick={handleCreateDiagram}
+                disabled={createDiagramState === 'loading'}
               >
                 New diagram
               </Button>
@@ -269,6 +297,7 @@ const Sidebar = () => {
                   textTransform: 'initial',
                 }}
                 onClick={handleSelectDiagram}
+                disabled={selectDiagramState === 'loading'}
               >
                 Browse diagrams
               </Button>
@@ -282,6 +311,7 @@ const Sidebar = () => {
                   textTransform: 'initial',
                 }}
                 onClick={handleDiagramsUpdate}
+                disabled={updateDiagramsState === 'loading'}
               >
                 Update all diagrams
               </Button>
@@ -308,48 +338,55 @@ const Sidebar = () => {
                     />
                   </Tabs>
                 </Box>
-                {tab === 0 ? (
-                  <iframe
-                    src={diagramsUrl}
-                    title="diagrams"
-                    style={{
-                      border: 'none',
-                      marginTop: '20px',
-                      width: '100%',
-                      height: 'calc(100vh - 520px)',
-                    }}
-                  />
-                ) : (
-                  <Container
-                    sx={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: '20px',
-                      marginTop: '20px',
-                    }}
-                  >
-                    {chartImages.map((image) => (
-                      <div
-                        key={image.altDescription}
-                        onClick={() =>
-                          handleSelectedImage(image.altDescription)
-                        }
-                      >
-                        <img
-                          src={image.image}
-                          alt={image.altDescription}
-                          style={{
-                            width: '200px',
-                            height: 'auto',
-                            marginBottom: '10px',
-                            cursor: 'pointer',
-                          }}
-                        />
-                      </div>
+                <iframe
+                  src={diagramsUrl}
+                  title="diagrams"
+                  style={{
+                    border: 'none',
+                    marginTop: '20px',
+                    width: '260px',
+                    height: 'calc(100vh - 520px)',
+                    display: tab === 0 ? 'block' : 'none',
+                  }}
+                />
+                <Container
+                  sx={{
+                    display: tab === 1 ? 'flex' : 'none',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '20px',
+                    marginTop: '20px',
+                    height: 'calc(100vh - 520px)',
+                    overflowY: 'auto',
+                  }}
+                >
+                  {chartImagesState !== 'error' &&
+                    (chartImages.length > 0 ? (
+                      chartImages.map((image) => (
+                        <div
+                          key={image.altDescription}
+                          onClick={() =>
+                            handleSelectedImage(image.altDescription)
+                          }
+                        >
+                          <img
+                            src={image.image}
+                            alt={image.altDescription}
+                            style={{
+                              width: '200px',
+                              height: 'auto',
+                              marginBottom: '10px',
+                              cursor: 'pointer',
+                            }}
+                          />
+                        </div>
+                      ))
+                    ) : (
+                      <Typography title="h4" textAlign="center">
+                        No selected diagrams
+                      </Typography>
                     ))}
-                  </Container>
-                )}
+                </Container>
               </Box>
             </>
           ) : (

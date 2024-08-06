@@ -31,6 +31,11 @@ const clientEntrypoints = [
     template: 'select-diagram-dialog/index.html',
   },
   {
+    name: 'CLIENT - Preview Diagram Dialog',
+    filename: 'preview-diagram-dialog',
+    template: 'preview-diagram-dialog/index.html',
+  },
+  {
     name: 'CLIENT - Sidebar',
     filename: 'sidebar',
     template: 'sidebar/index.html',

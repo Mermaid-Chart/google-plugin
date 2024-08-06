@@ -41,7 +41,7 @@ const EditDiagramDialog = () => {
     };
 
     getMetadata();
-  }, [authState, editUrl]);
+  }, [authState]);
 
   useEffect(() => {
     const handleMessage = async (e: MessageEvent) => {

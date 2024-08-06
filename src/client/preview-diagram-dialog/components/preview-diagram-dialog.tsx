@@ -13,7 +13,7 @@ const PreviewDiagramDialog = () => {
     if (!authState?.authorized || !previewUrl) return;
     const url = buildUrl(previewUrl, authState.token);
     setDiagramsUrl(url);
-  }, [authState, previewUrl]);
+  }, [authState]);
 
   if (authStatus === 'idle' || authStatus === 'loading') {
     return (

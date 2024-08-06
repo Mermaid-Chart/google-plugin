@@ -69,7 +69,7 @@ export const openPreviewDiagramDialog = () => {
   DocumentApp.getUi().showModalDialog(html, 'Preview Diagram');
 };
 
-export const openEditDiagramDialogWithUrl = (editUrl) => {
+export const openEditDiagramDialogWithUrl = () => {
   const html = HtmlService.createHtmlOutputFromFile('edit-diagram-dialog')
     .append(
       `<script>

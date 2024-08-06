@@ -88,7 +88,7 @@ const Sidebar = () => {
         if (!data.editUrl) return;
         try {
           localStorage.setItem('editUrl', data.editUrl);
-          await serverFunctions.openEditDiagramDialogWithUrl(data.editUrl);
+          await serverFunctions.openEditDiagramDialogWithUrl();
         } catch (error) {
           console.error('Error opening edit dialog', error);
         }
@@ -109,7 +109,7 @@ const Sidebar = () => {
     return () => {
       window.removeEventListener('message', handleMessage);
     };
-  }, []);
+  }, [getImages]);
 
   const handleLoginClick = async () => {
     const width = 500;

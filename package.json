@@ -11,8 +11,10 @@
     "push": "clasp push",
     "setup:https": "mkdirp certs && mkcert -key-file ./certs/key.pem -cert-file ./certs/cert.pem localhost 127.0.0.1",
     "build:dev": "tsc && vite build --mode development",
+    "build:test": "tsc && NODE_ENV=test vite build --mode test",
     "build": "tsc && vite build --mode production",
     "deploy:dev": "yarn build:dev && yarn push",
+    "deploy:test": "yarn build:test && yarn push",
     "deploy": "yarn build && yarn push",
     "start": "yarn deploy:dev && yarn dev"
   },

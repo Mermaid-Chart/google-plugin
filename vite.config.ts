@@ -164,16 +164,16 @@ const buildConfig = ({ mode }: { mode: string }) => {
         targets,
       }),
       /**
-       * This builds the client react app bundles for production, and writes them to disk.
+       * This builds the client react app bundles for production and test, and writes them to disk.
        * Because multiple client entrypoints (dialogs) are built, we need to loop through
        * each entrypoint and build the client bundle for each. Vite doesn't have great tooling for
        * building multiple single-page apps in one project, so we have to do this manually with a
        * post-build closeBundle hook (https://rollupjs.org/guide/en/#closebundle).
        */
-      mode === 'production' && {
-        name: 'build-client-production-bundles',
+      (mode === 'production' || mode === 'test') && {
+        name: `build-client-${mode}-bundles`,
         closeBundle: async () => {
-          console.log('Building client production bundles...');
+          console.log(`Building client ${mode} bundles...`);
           // eslint-disable-next-line no-restricted-syntax
           for (const clientEntrypoint of clientEntrypoints) {
             console.log('Building client bundle for', clientEntrypoint.name);

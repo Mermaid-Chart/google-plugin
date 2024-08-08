@@ -1,5 +1,3 @@
-const baseURL = 'https://test.mermaidchart.com';
-
 export const onOpen = () => {
   const menu = DocumentApp.getUi()
     .createAddonMenu()
@@ -9,6 +7,26 @@ export const onOpen = () => {
     .addItem('Edit Diagram', 'openEditDiagramDialog');
 
   menu.addToUi();
+};
+
+export const setBaseUrl = (url) => {
+  try {
+    const scriptProperties = PropertiesService.getScriptProperties();
+    scriptProperties.setProperty('baseURL', url);
+  } catch (err) {
+    Logger.log('Failed with error %s', err.message);
+  }
+};
+
+const getBaseUrl = () => {
+  try {
+    const scriptProperties = PropertiesService.getScriptProperties();
+    const baseURL = scriptProperties.getProperty('baseURL');
+    Logger.log('Base URL: %s', baseURL);
+    return baseURL;
+  } catch (error) {
+    Logger.log('Failed with error %s', error.message);
+  }
 };
 
 export const openCreateDiagramDialog = () => {
@@ -125,6 +143,11 @@ export function handleCallback(callbackRequest) {
 function getOAuthService() {
   pkceChallengeVerifier();
   const userProps = PropertiesService.getUserProperties();
+  const baseURL = getBaseUrl();
+
+  if (!baseURL) {
+    throw new Error('Base URL is not defined.');
+  }
 
   return OAuth2.createService('Mermaid Chart')
     .setAuthorizationBaseUrl(baseURL + '/oauth/authorize')
@@ -349,6 +372,11 @@ export function syncImages(maxWidth = 400) {
   const { token } = getAuthorizationState();
   const body = DocumentApp.getActiveDocument().getBody();
   const images = body.getImages();
+  const baseURL = getBaseUrl();
+
+  if (!baseURL) {
+    throw new Error('Base URL is not defined.');
+  }
 
   images.forEach((image) => {
     const altDescription = image.getAltDescription();

@@ -10,7 +10,6 @@ const SelectDiagramDialog = () => {
 
   useEffect(() => {
     if (!authState?.authorized) return;
-    // const url = buildUrl('/app/plugins/confluence/select', state.token);
     const url = buildUrl(
       '/app/plugins/select?pluginSource=googledocs',
       authState.token

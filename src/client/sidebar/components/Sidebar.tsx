@@ -33,7 +33,6 @@ const Sidebar = () => {
 
   useEffect(() => {
     if (!authState?.authorized) return;
-    // const url = buildUrl('/app/plugins/confluence/select', state.token);
     const url = buildUrl(
       '/app/plugins/recent?pluginSource=googledocs',
       authState.token
@@ -65,9 +64,11 @@ const Sidebar = () => {
   useEffect(() => {
     const handleMessage = async (e: MessageEvent) => {
       const action = e.data.action;
-      console.log('action', action);
+      const actionData = e.data;
+
       if (action === 'save') {
-        const data = e.data.data;
+        const data = actionData.data;
+        if (!data) return;
         const metadata = new URLSearchParams({
           projectID: data.projectID,
           documentID: data.documentID,
@@ -83,20 +84,24 @@ const Sidebar = () => {
         } catch (error) {
           console.error('Error inserting image with metadata', error);
         }
-      } else if (action === 'edit') {
-        const data = e.data;
-        if (!data.editUrl) return;
+        return;
+      }
+      if (action === 'edit') {
+        const editUrl = actionData.editUrl;
+        if (!editUrl) return;
         try {
-          localStorage.setItem('editUrl', data.editUrl);
+          localStorage.setItem('editUrl', editUrl);
           await serverFunctions.openEditDiagramDialogWithUrl();
         } catch (error) {
           console.error('Error opening edit dialog', error);
         }
-      } else if (action === 'view') {
-        console.log(e.data);
-        if (!e.data.url) return;
+        return;
+      }
+      if (action === 'view') {
+        const viewUrl = actionData.url;
+        if (!viewUrl) return;
         try {
-          localStorage.setItem('previewUrl', e.data.url);
+          localStorage.setItem('previewUrl', viewUrl);
           await serverFunctions.openPreviewDiagramDialog();
         } catch (error) {
           console.error('Error opening edit dialog', error);

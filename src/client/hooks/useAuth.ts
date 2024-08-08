@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { serverFunctions } from '../utils/serverFunctions';
+import { baseURL } from '../../config/urls';
 
 type Status = 'idle' | 'loading' | 'success' | 'error';
 
@@ -21,6 +22,7 @@ const useAuth = () => {
   const getAuth = useCallback(async () => {
     setAuthStatus('loading');
     try {
+      await serverFunctions.setBaseUrl(baseURL);
       const state = await serverFunctions.getAuthorizationState();
       setAuthState(state as AuthState);
       setAuthStatus('success');

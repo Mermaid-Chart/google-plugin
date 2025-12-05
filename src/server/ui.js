@@ -497,6 +497,30 @@ export function selectChartImage(altDescription) {
   DocumentApp.getActiveDocument().setSelection(range);
 }
 
+export function removeDiagramByAltDescription(altDescription) {
+  if (!altDescription) {
+    return { success: false, message: 'No diagram identifier provided.' };
+  }
+  
+  const body = DocumentApp.getActiveDocument().getBody();
+  const images = body.getImages();
+  const imageToRemove = images.find(
+    (image) => image.getAltDescription() === altDescription
+  );
+
+  if (!imageToRemove) {
+    return { success: false, message: 'Diagram not found in document.' };
+  }
+
+  try {
+    imageToRemove.removeFromParent();
+    return { success: true, message: 'Diagram removed successfully.' };
+  } catch (error) {
+    Logger.log('Error removing image: ' + error.message);
+    return { success: false, message: 'Failed to remove diagram.' };
+  }
+}
+
 export function showAlertDialog(errorText) {
   DocumentApp.getUi().alert(errorText);
 }

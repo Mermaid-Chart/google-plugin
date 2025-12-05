@@ -501,7 +501,7 @@ export function removeDiagramByAltDescription(altDescription) {
   if (!altDescription) {
     return { success: false, message: 'No diagram identifier provided.' };
   }
-  
+
   const body = DocumentApp.getActiveDocument().getBody();
   const images = body.getImages();
   const imageToRemove = images.find(

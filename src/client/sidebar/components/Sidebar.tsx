@@ -209,7 +209,9 @@ const Sidebar = () => {
 
   const handleRemoveDiagram = async (altDescription: string) => {
     try {
-      const result = await serverFunctions.removeDiagramByAltDescription(altDescription);
+      const result = await serverFunctions.removeDiagramByAltDescription(
+        altDescription
+      );
       if (result.success) {
         // Refresh the diagrams list after successful removal
         getImages();
@@ -269,9 +271,7 @@ const Sidebar = () => {
           alignItems: 'center',
           padding: '15px 20px',
         }}
-      >
-
-      </Container>
+      ></Container>
 
       <Divider />
 
@@ -285,120 +285,129 @@ const Sidebar = () => {
         }}
       >
         <div>
+          {!authState?.authorized ? (
+            <Box
+              sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: 'calc(100vh - 80px)',
+                textAlign: 'center',
+              }}
+            >
+              <Box
+                sx={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  textAlign: 'center',
+                  gap: 20,
+                }}
+              >
+                <img
+                  src="https://jiratest.mermaidchart.com/icon_80x80.png"
+                  alt="logo"
+                  width={80}
+                  height={80}
+                />
+              </Box>
+              <Typography
+                sx={{
+                  maxWidth: '344px',
+                  fontFamily: 'Recursive',
+                  fontSize: '20px',
+                  marginTop: '12px',
+                  fontWeight: 420,
+                  color: '#1E1A2E',
+                  marginBottom: '14px',
+                  lineHeight: '28px',
+                  letterSpacing: 'normal',
+                }}
+              >
+                Welcome to <br />
+                the Mermaid
+              </Typography>
 
-{!authState?.authorized ? (
-  <Box
-    sx={{
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      height: 'calc(100vh - 80px)',
-      textAlign: 'center',
-    }}
-  >
-    <Box
-      sx={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        textAlign: 'center',
-        gap: 20,
-      }}
-    >
-      <img
-        src="https://jiratest.mermaidchart.com/icon_80x80.png"
-        alt="logo"
-        width={80}
-        height={80}
-      />
-    </Box>
-    <Typography
-      sx={{
-        maxWidth: '344px',
-        fontFamily: 'Recursive',
-        fontSize: '20px',
-        marginTop: '12px',
-        fontWeight: 420,
-        color: '#1E1A2E',
-        marginBottom: '14px',
-        lineHeight: '28px',
-        letterSpacing: 'normal',
-      }}
-    >
-      Welcome to  <br />
-      the Mermaid 
-    </Typography>
+              <Typography
+                sx={{
+                  fontFamily: 'Recursive',
+                  fontWeight: 400,
+                  fontSize: '16px',
+                  color: '#1E1A2E',
+                  lineHeight: '24px',
+                  marginBottom: '28px',
+                }}
+              >
+                Create and edit diagrams in Mermaid Chart and easily synchronize
+                documents with Google Docs.
+              </Typography>
 
-    <Typography
-      sx={{
-        fontFamily: 'Recursive',
-        fontWeight: 400,
-        fontSize: '16px',
-        color: '#1E1A2E',
-        lineHeight: '24px',
-        marginBottom: '28px',
-      }}
-    >
-      Create and edit diagrams in Mermaid Chart and easily synchronize
-      documents with Google Docs.
-    </Typography>
+              <MuiButton
+                onClick={handleLoginClick}
+                sx={{
+                  fontFamily: 'Recursive',
+                  width: '100%',
+                  maxWidth: '240px',
+                  backgroundColor: '#E80962',
+                  color: '#fff',
+                  fontSize: '16px',
+                  fontWeight: 600,
+                  height: '46px',
+                  borderRadius: '10px',
+                  textTransform: 'none',
+                  '&:hover': {
+                    backgroundColor: '#B20E45',
+                  },
+                }}
+              >
+                Login
+              </MuiButton>
 
-    <MuiButton
-      onClick={handleLoginClick}
-      sx={{
-      fontFamily: 'Recursive',
-        width: '100%',
-        maxWidth: '240px',
-        backgroundColor: '#E80962',
-        color: '#fff',
-        fontSize: '16px',
-        fontWeight: 600,
-        height: '46px',
-        borderRadius: '10px',
-        textTransform: 'none',
-        '&:hover': {
-          backgroundColor: '#B20E45',
-        },
-      }}
-    >
-      Login
-    </MuiButton>
+              <Typography
+                sx={{
+                  fontFamily: 'Recursive',
+                  marginTop: '22px',
+                  fontSize: '14px',
+                  color: '#343434',
+                }}
+              >
+                Don’t have an account?
+              </Typography>
 
-    <Typography
-      sx={{
-      fontFamily: 'Recursive',
-        marginTop: '22px',
-        fontSize: '14px',
-        color: '#343434',
-      }}
-    >
-      Don’t have an account?
-    </Typography>
-
-    <MuiButton
-      onClick={() => window.open('https://mermaidchart.com/app/sign-up', '_blank')}
-      sx={{
-        textTransform: 'none',
-        color: '#0071e3',
-        padding: 0,
-        minWidth: 'auto',
-        fontSize: '14px',
-        marginTop: '4px',
-        fontFamily: 'Recursive, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-        '&:hover': {
-          textDecoration: 'underline',
-          background: 'none',
-        },
-      }}
-    >
-      Sign up
-    </MuiButton>
-  </Box>
-) : (
+              <MuiButton
+                onClick={() =>
+                  window.open('https://mermaidchart.com/app/sign-up', '_blank')
+                }
+                sx={{
+                  textTransform: 'none',
+                  color: '#0071e3',
+                  padding: 0,
+                  minWidth: 'auto',
+                  fontSize: '14px',
+                  marginTop: '4px',
+                  fontFamily:
+                    'Recursive, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                  '&:hover': {
+                    textDecoration: 'underline',
+                    background: 'none',
+                  },
+                }}
+              >
+                Sign up
+              </MuiButton>
+            </Box>
+          ) : (
             <>
-
-              <Typography title="h3" color={'#1E1A2E'} mb={1} sx={{ fontFamily: 'Recursive, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
+              <Typography
+                title="h3"
+                color={'#1E1A2E'}
+                mb={1}
+                sx={{
+                  fontFamily:
+                    'Recursive, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                }}
+              >
                 Create a new diagram
               </Typography>
               <Button
@@ -433,8 +442,14 @@ const Sidebar = () => {
                     value={tab}
                     onChange={(_, newValue) => handleTabSwitch(newValue)}
                   >
-                    <Tab label="Recent diagrams" sx={{ textTransform: 'initial' }} />
-                    <Tab label="In this document" sx={{ textTransform: 'initial' }} />
+                    <Tab
+                      label="Recent diagrams"
+                      sx={{ textTransform: 'initial' }}
+                    />
+                    <Tab
+                      label="In this document"
+                      sx={{ textTransform: 'initial' }}
+                    />
                   </Tabs>
                 </Box>
                 <iframe
@@ -460,9 +475,10 @@ const Sidebar = () => {
                     overflowY: 'auto',
                   }}
                 >
-                  {chartImagesState === 'loading' && chartImages.length === 0 && (
-                    <CircularProgress sx={{ justifySelf: 'center' }} />
-                  )}
+                  {chartImagesState === 'loading' &&
+                    chartImages.length === 0 && (
+                      <CircularProgress sx={{ justifySelf: 'center' }} />
+                    )}
 
                   {chartImages.length > 0 &&
                     chartImages.map((image) => (
@@ -487,7 +503,9 @@ const Sidebar = () => {
                             borderRadius: '4px',
                             cursor: 'pointer',
                           }}
-                          onClick={() => handleSelectedImage(image.altDescription)}
+                          onClick={() =>
+                            handleSelectedImage(image.altDescription)
+                          }
                         />
 
                         <Box sx={{ display: 'flex', gap: '8px' }}>
@@ -496,7 +514,9 @@ const Sidebar = () => {
                               fontSize: '12px',
                               padding: '4px 12px',
                             }}
-                            onClick={() => handleEditDiagram(image.altDescription)}
+                            onClick={() =>
+                              handleEditDiagram(image.altDescription)
+                            }
                           >
                             Edit
                           </Button>
@@ -508,7 +528,9 @@ const Sidebar = () => {
                               backgroundColor: '#d32f2f',
                               color: 'white',
                             }}
-                            onClick={() => handleRemoveDiagram(image.altDescription)}
+                            onClick={() =>
+                              handleRemoveDiagram(image.altDescription)
+                            }
                           >
                             Remove
                           </Button>
@@ -518,7 +540,14 @@ const Sidebar = () => {
 
                   {chartImagesState === 'success' &&
                     chartImages.length === 0 && (
-                      <Typography title="h4" textAlign="center" sx={{ fontFamily: 'Recursive, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
+                      <Typography
+                        title="h4"
+                        textAlign="center"
+                        sx={{
+                          fontFamily:
+                            'Recursive, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                        }}
+                      >
                         No selected diagrams
                       </Typography>
                     )}
@@ -539,7 +568,15 @@ const Sidebar = () => {
               textAlign: 'center',
             }}
           >
-            <Typography paragraph textAlign="center" mb={0} sx={{ fontFamily: 'Recursive, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
+            <Typography
+              paragraph
+              textAlign="center"
+              mb={0}
+              sx={{
+                fontFamily:
+                  'Recursive, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+              }}
+            >
               <a
                 href="https://mermaidchart.com"
                 target="_blank"

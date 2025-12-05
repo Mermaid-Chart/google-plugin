@@ -47,5 +47,4 @@ export {
   getChartImages,
   showAlertDialog,
   removeDiagramByAltDescription,
-
 };

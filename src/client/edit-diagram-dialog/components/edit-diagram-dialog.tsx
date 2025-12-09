@@ -46,9 +46,9 @@ const EditDiagramDialog = () => {
         if (isUpdating) {
           return;
         }
-        
+
         setIsUpdating(true);
-        
+
         const data = e.data.data;
         const metadata = new URLSearchParams({
           projectID: data.projectID,
@@ -65,7 +65,7 @@ const EditDiagramDialog = () => {
         } catch (error) {
           console.error('Error updating image with metadata', error);
           showAlertDialog('Error updating image, please try again');
-          setIsUpdating(false); 
+          setIsUpdating(false);
         }
       }
     };

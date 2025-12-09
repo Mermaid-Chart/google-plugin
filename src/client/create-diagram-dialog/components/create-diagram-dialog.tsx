@@ -28,9 +28,9 @@ const CreateDiagramDialog = () => {
           console.log('Already inserting diagram, ignoring duplicate click');
           return;
         }
-        
+
         setIsInserting(true);
-        
+
         const data = e.data.data;
         const metadata = new URLSearchParams({
           projectID: data.projectID,
@@ -48,7 +48,7 @@ const CreateDiagramDialog = () => {
         } catch (error) {
           console.error('Error inserting image with metadata', error);
           showAlertDialog('Error inserting image, please try again');
-          setIsInserting(false); 
+          setIsInserting(false);
         }
       }
     };

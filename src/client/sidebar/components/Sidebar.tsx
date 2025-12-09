@@ -199,7 +199,6 @@ const Sidebar = () => {
   const handleEditDiagram = async (altDescription: string) => {
     try {
       await serverFunctions.selectChartImage(altDescription);
-
       await serverFunctions.openEditDiagramDialog();
     } catch (error) {
       console.error('Error editing diagram', error);
@@ -459,7 +458,7 @@ const Sidebar = () => {
                     border: 'none',
                     marginTop: '20px',
                     width: '260px',
-                    height: 'calc(100vh - 520px)',
+                    height: 'calc(100vh - 440px)',
                     display: tab === 0 ? 'block' : 'none',
                   }}
                 />
@@ -583,7 +582,7 @@ const Sidebar = () => {
                 rel="noreferrer"
                 style={{ color: '#1E1A2E' }}
               >
-                Copyright © 2024 Mermaid Chart
+                Copyright © 2025 Mermaid Chart
               </a>
             </Typography>
           </Container>

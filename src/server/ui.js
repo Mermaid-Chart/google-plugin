@@ -44,8 +44,8 @@ export function openCreateDiagramDialog() {
       }, false);
     </script>`
     )
-    .setWidth(1366)
-    .setHeight(768);
+    .setWidth(1600)
+    .setHeight(900);
   DocumentApp.getUi().showModalDialog(html, 'Create new diagram');
 }
 
@@ -68,8 +68,8 @@ export function openEditDiagramDialog() {
       }, false);
     </script>`
     )
-    .setWidth(1366)
-    .setHeight(768);
+    .setWidth(1600)
+    .setHeight(900);
 
   DocumentApp.getUi().showModalDialog(html, 'Edit Diagram');
 }
@@ -85,8 +85,8 @@ export function openPreviewDiagramDialog() {
       }, false);
     </script>`
     )
-    .setWidth(1366)
-    .setHeight(768);
+    .setWidth(1600)
+    .setHeight(900);
 
   DocumentApp.getUi().showModalDialog(html, 'Preview Diagram');
 }
@@ -102,8 +102,8 @@ export function openEditDiagramDialogWithUrl() {
       }, false);
     </script>`
     )
-    .setWidth(1366)
-    .setHeight(768);
+    .setWidth(1600)
+    .setHeight(900);
 
   DocumentApp.getUi().showModalDialog(html, 'Edit Diagram');
 }
@@ -119,8 +119,8 @@ export function openSelectDiagramDialog() {
       }, false);
     </script>`
     )
-    .setWidth(1366)
-    .setHeight(768);
+    .setWidth(1600)
+    .setHeight(900);
   DocumentApp.getUi().showModalDialog(html, 'Select Diagram');
 }
 

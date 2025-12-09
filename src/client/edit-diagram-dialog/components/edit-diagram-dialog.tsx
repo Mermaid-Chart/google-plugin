@@ -3,10 +3,12 @@ import { serverFunctions } from '../../utils/serverFunctions';
 import { buildUrl, handleDialogClose } from '../../utils/helpers';
 import useAuth from '../../hooks/useAuth';
 import { showAlertDialog } from '../../utils/alert';
+import LoadingOverlay from '../../components/loading-overlay';
 
 const EditDiagramDialog = () => {
   const { authState, authStatus } = useAuth();
   const [diagramsUrl, setDiagramsUrl] = useState('');
+  const [isUpdating, setIsUpdating] = useState(false);
 
   useEffect(() => {
     if (!authState?.authorized) return;
@@ -41,6 +43,12 @@ const EditDiagramDialog = () => {
       const action = e.data.action;
       console.log('action', action);
       if (action === 'save') {
+        if (isUpdating) {
+          return;
+        }
+        
+        setIsUpdating(true);
+        
         const data = e.data.data;
         const metadata = new URLSearchParams({
           projectID: data.projectID,
@@ -57,6 +65,7 @@ const EditDiagramDialog = () => {
         } catch (error) {
           console.error('Error updating image with metadata', error);
           showAlertDialog('Error updating image, please try again');
+          setIsUpdating(false); 
         }
       }
     };
@@ -66,24 +75,29 @@ const EditDiagramDialog = () => {
     return () => {
       window.removeEventListener('message', handleMessage);
     };
-  }, []);
+  }, [isUpdating]);
 
   if (authStatus !== 'success' || !diagramsUrl) {
     return null;
   }
 
   return (
-    <div style={{ padding: '3px', overflowX: 'hidden', height: '100%' }}>
-      <iframe
-        src={diagramsUrl}
-        title="diagrams"
-        style={{
-          border: 'none',
-          width: '100%',
-          height: '96.5vh',
-        }}
-      />
-    </div>
+    <>
+      {isUpdating && <LoadingOverlay />}
+      <div style={{ padding: '3px', overflowX: 'hidden', height: '100%' }}>
+        <iframe
+          src={diagramsUrl}
+          title="diagrams"
+          style={{
+            border: 'none',
+            width: '100%',
+            height: '96.5vh',
+            opacity: isUpdating ? 0.5 : 1,
+            pointerEvents: isUpdating ? 'none' : 'auto',
+          }}
+        />
+      </div>
+    </>
   );
 };
 

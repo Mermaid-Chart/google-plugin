@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react';
 import { serverFunctions } from '../../utils/serverFunctions';
-import { buildUrl, handleDialogClose } from '../../utils/helpers';
+import {
+  buildUrl,
+  handleDialogClose,
+  compressBase64Image,
+} from '../../utils/helpers';
 import useAuth from '../../hooks/useAuth';
 import { showAlertDialog } from '../../utils/alert';
 import LoadingOverlay from '../../components/loading-overlay';
@@ -59,8 +63,10 @@ const EditDiagramDialog = () => {
           minor: data.minor,
         });
         try {
+          const compressedImage = await compressBase64Image(data.diagramImage);
+
           await serverFunctions.replaceSelectedImageWithBase64AndSize(
-            data.diagramImage,
+            compressedImage,
             metadata.toString()
           );
           handleDialogClose();

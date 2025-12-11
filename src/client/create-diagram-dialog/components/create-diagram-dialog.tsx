@@ -1,5 +1,9 @@
 import { useEffect, useState } from 'react';
-import { buildUrl, handleDialogClose } from '../../utils/helpers';
+import {
+  buildUrl,
+  handleDialogClose,
+  compressBase64Image,
+} from '../../utils/helpers';
 import { serverFunctions } from '../../utils/serverFunctions';
 import useAuth from '../../hooks/useAuth';
 import { CircularProgress, Container, Typography, Box } from '@mui/material';
@@ -41,8 +45,10 @@ const CreateDiagramDialog = () => {
         });
 
         try {
+          const compressedImage = await compressBase64Image(data.diagramImage);
+
           await serverFunctions.insertBase64ImageWithMetadata(
-            data.diagramImage,
+            compressedImage,
             metadata.toString()
           );
           handleDialogClose();

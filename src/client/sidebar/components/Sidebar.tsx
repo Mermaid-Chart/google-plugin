@@ -10,7 +10,6 @@ import {
   Tab,
 } from '@mui/material';
 import { serverFunctions } from '../../utils/serverFunctions';
-import LoadingOverlay from '../../components/loading-overlay';
 import { buildUrl } from '../../utils/helpers';
 import useAuth from '../../hooks/useAuth';
 import Button from '../../components/button';
@@ -228,13 +227,12 @@ const Sidebar = () => {
       <Container
         sx={{
           display: 'flex',
-          flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
           height: 'calc(100vh - 114px)',
         }}
       >
-        <CircularProgress />
+        <CircularProgress size={40} />
       </Container>
     );
   }
@@ -250,10 +248,10 @@ const Sidebar = () => {
           height: 'calc(100vh - 114px)',
         }}
       >
-        <Typography variant="h5" gutterBottom my={2} textAlign="center">
+        <Typography variant="h6" gutterBottom textAlign="center">
           Error
         </Typography>
-        <Typography paragraph textAlign="center">
+        <Typography variant="body2" textAlign="center">
           Something went wrong. Please try again later.
         </Typography>
       </Container>
@@ -262,7 +260,24 @@ const Sidebar = () => {
 
   return (
     <>
-      {overlayEnabled && <LoadingOverlay />}
+      {overlayEnabled && (
+        <Box
+          sx={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            backgroundColor: 'rgba(255, 255, 255, 0.8)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+          }}
+        >
+          <CircularProgress size={40} />
+        </Box>
+      )}
       <Container
         sx={{
           display: 'flex',
@@ -476,7 +491,16 @@ const Sidebar = () => {
                 >
                   {chartImagesState === 'loading' &&
                     chartImages.length === 0 && (
-                      <CircularProgress sx={{ justifySelf: 'center' }} />
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          height: '100px',
+                        }}
+                      >
+                        <CircularProgress size={40} />
+                      </Box>
                     )}
 
                   {chartImages.length > 0 &&
@@ -574,6 +598,7 @@ const Sidebar = () => {
               sx={{
                 fontFamily:
                   'Recursive, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                fontSize: '14px',
               }}
             >
               <a

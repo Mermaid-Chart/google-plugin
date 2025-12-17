@@ -10,7 +10,6 @@ import {
   Tab,
 } from '@mui/material';
 import { serverFunctions } from '../../utils/serverFunctions';
-import LoadingOverlay from '../../components/loading-overlay';
 import { buildUrl } from '../../utils/helpers';
 import useAuth from '../../hooks/useAuth';
 import Button from '../../components/button';
@@ -196,18 +195,44 @@ const Sidebar = () => {
     }
   };
 
+  const handleEditDiagram = async (altDescription: string) => {
+    try {
+      await serverFunctions.selectChartImage(altDescription);
+      await serverFunctions.openEditDiagramDialog();
+    } catch (error) {
+      console.error('Error editing diagram', error);
+      showAlertDialog('Error editing diagram, please try again');
+    }
+  };
+
+  const handleRemoveDiagram = async (altDescription: string) => {
+    try {
+      const result = await serverFunctions.removeDiagramByAltDescription(
+        altDescription
+      );
+      if (result.success) {
+        // Refresh the diagrams list after successful removal
+        getImages();
+      } else {
+        showAlertDialog(result.message || 'Failed to remove diagram');
+      }
+    } catch (error) {
+      console.error('Error removing diagram', error);
+      showAlertDialog('Error removing diagram, please try again');
+    }
+  };
+
   if (authStatus === 'idle' || authStatus === 'loading') {
     return (
       <Container
         sx={{
           display: 'flex',
-          flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
           height: 'calc(100vh - 114px)',
         }}
       >
-        <CircularProgress />
+        <CircularProgress size={40} />
       </Container>
     );
   }
@@ -223,10 +248,10 @@ const Sidebar = () => {
           height: 'calc(100vh - 114px)',
         }}
       >
-        <Typography variant="h5" gutterBottom my={2} textAlign="center">
+        <Typography variant="h6" gutterBottom textAlign="center">
           Error
         </Typography>
-        <Typography paragraph textAlign="center">
+        <Typography variant="body2" textAlign="center">
           Something went wrong. Please try again later.
         </Typography>
       </Container>
@@ -235,7 +260,24 @@ const Sidebar = () => {
 
   return (
     <>
-      {overlayEnabled && <LoadingOverlay />}
+      {overlayEnabled && (
+        <Box
+          sx={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            backgroundColor: 'rgba(255, 255, 255, 0.8)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+          }}
+        >
+          <CircularProgress size={40} />
+        </Box>
+      )}
       <Container
         sx={{
           display: 'flex',
@@ -243,36 +285,143 @@ const Sidebar = () => {
           alignItems: 'center',
           padding: '15px 20px',
         }}
-      >
-        <img
-          src="https://jiratest.mermaidchart.com/icon_80x80.png"
-          alt="mc"
-          width={30}
-          height={30}
-        />
-        <>
-          {authState?.authorized ? (
-            <Button onClick={signOut}>Logout</Button>
-          ) : (
-            <Button onClick={handleLoginClick}>Login</Button>
-          )}
-        </>
-      </Container>
+      ></Container>
+
       <Divider />
+
       <Container
         sx={{
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
           alignItems: 'center',
-          padding: '20px',
           height: 'calc(100vh - 69px)',
         }}
       >
         <div>
-          {authState?.authorized ? (
+          {!authState?.authorized ? (
+            <Box
+              sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: 'calc(100vh - 80px)',
+                textAlign: 'center',
+              }}
+            >
+              <Box
+                sx={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  textAlign: 'center',
+                  gap: 20,
+                }}
+              >
+                <img
+                  src="https://jiratest.mermaidchart.com/icon_80x80.png"
+                  alt="logo"
+                  width={80}
+                  height={80}
+                />
+              </Box>
+              <Typography
+                sx={{
+                  maxWidth: '344px',
+                  fontFamily: 'Recursive',
+                  fontSize: '20px',
+                  marginTop: '12px',
+                  fontWeight: 420,
+                  color: '#1E1A2E',
+                  marginBottom: '14px',
+                  lineHeight: '28px',
+                  letterSpacing: 'normal',
+                }}
+              >
+                Welcome to <br />
+                the Mermaid
+              </Typography>
+
+              <Typography
+                sx={{
+                  fontFamily: 'Recursive',
+                  fontWeight: 400,
+                  fontSize: '16px',
+                  color: '#1E1A2E',
+                  lineHeight: '24px',
+                  marginBottom: '28px',
+                }}
+              >
+                Create and edit diagrams in Mermaid Chart and easily synchronize
+                documents with Google Docs.
+              </Typography>
+
+              <MuiButton
+                onClick={handleLoginClick}
+                sx={{
+                  fontFamily: 'Recursive',
+                  width: '100%',
+                  maxWidth: '240px',
+                  backgroundColor: '#E80962',
+                  color: '#fff',
+                  fontSize: '16px',
+                  fontWeight: 600,
+                  height: '46px',
+                  borderRadius: '10px',
+                  textTransform: 'none',
+                  '&:hover': {
+                    backgroundColor: '#B20E45',
+                  },
+                }}
+              >
+                Login
+              </MuiButton>
+
+              <Typography
+                sx={{
+                  fontFamily: 'Recursive',
+                  marginTop: '22px',
+                  fontSize: '14px',
+                  color: '#343434',
+                }}
+              >
+                Don’t have an account?
+              </Typography>
+
+              <MuiButton
+                onClick={() =>
+                  window.open('https://mermaidchart.com/app/sign-up', '_blank')
+                }
+                sx={{
+                  textTransform: 'none',
+                  color: '#0071e3',
+                  padding: 0,
+                  minWidth: 'auto',
+                  fontSize: '14px',
+                  marginTop: '4px',
+                  fontFamily:
+                    'Recursive, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                  '&:hover': {
+                    textDecoration: 'underline',
+                    background: 'none',
+                  },
+                }}
+              >
+                Sign up
+              </MuiButton>
+            </Box>
+          ) : (
             <>
-              <Typography title="h3" color={'#883a79'} mb={1}>
+              <Typography
+                title="h3"
+                color={'#1E1A2E'}
+                mb={1}
+                sx={{
+                  fontFamily:
+                    'Recursive, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                }}
+              >
                 Create a new diagram
               </Typography>
               <Button
@@ -282,7 +431,7 @@ const Sidebar = () => {
               >
                 New diagram
               </Button>
-              <Typography title="h3" color={'#883a79'} mb={1}>
+              <Typography title="h3" color={'#1E1A2E'} mb={1}>
                 Insert a diagram from Mermaid Chart
               </Typography>
               <Button
@@ -292,7 +441,7 @@ const Sidebar = () => {
               >
                 Browse diagrams
               </Button>
-              <Typography title="h3" color={'#883a79'} mb={1}>
+              <Typography title="h3" color={'#1E1A2E'} mb={1}>
                 Update all diagrams in document to most recent version
               </Typography>
               <Button
@@ -306,21 +455,14 @@ const Sidebar = () => {
                   <Tabs
                     value={tab}
                     onChange={(_, newValue) => handleTabSwitch(newValue)}
-                    aria-label="basic tabs example"
                   >
                     <Tab
                       label="Recent diagrams"
-                      sx={{
-                        textTransform: 'initial',
-                        padding: '12px 6px',
-                      }}
+                      sx={{ textTransform: 'initial' }}
                     />
                     <Tab
                       label="In this document"
-                      sx={{
-                        textTransform: 'initial',
-                        padding: '12px',
-                      }}
+                      sx={{ textTransform: 'initial' }}
                     />
                   </Tabs>
                 </Box>
@@ -331,10 +473,11 @@ const Sidebar = () => {
                     border: 'none',
                     marginTop: '20px',
                     width: '260px',
-                    height: 'calc(100vh - 520px)',
+                    height: 'calc(100vh - 440px)',
                     display: tab === 0 ? 'block' : 'none',
                   }}
                 />
+
                 <Container
                   sx={{
                     display: tab === 1 ? 'grid' : 'none',
@@ -342,90 +485,133 @@ const Sidebar = () => {
                     alignItems: 'center',
                     gap: '20px',
                     marginTop: '20px',
-                    height: 'calc(100vh - 520px)',
+                    height: 'calc(100vh - 440px)',
                     overflowY: 'auto',
                   }}
                 >
                   {chartImagesState === 'loading' &&
                     chartImages.length === 0 && (
-                      <CircularProgress sx={{ justifySelf: 'center' }} />
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          height: '100px',
+                        }}
+                      >
+                        <CircularProgress size={40} />
+                      </Box>
                     )}
+
                   {chartImages.length > 0 &&
                     chartImages.map((image) => (
-                      <div
+                      <Box
                         key={image.altDescription}
-                        onClick={() =>
-                          handleSelectedImage(image.altDescription)
-                        }
+                        sx={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          gap: '8px',
+                          padding: '10px',
+                          border: '1px solid #e0e0e0',
+                          borderRadius: '8px',
+                          backgroundColor: '#fafafa',
+                        }}
                       >
                         <img
                           src={image.image}
                           alt={image.altDescription}
                           style={{
                             width: '200px',
-                            height: 'auto',
-                            marginBottom: '10px',
+                            borderRadius: '4px',
                             cursor: 'pointer',
                           }}
+                          onClick={() =>
+                            handleSelectedImage(image.altDescription)
+                          }
                         />
-                      </div>
+
+                        <Box sx={{ display: 'flex', gap: '8px' }}>
+                          <Button
+                            style={{
+                              fontSize: '12px',
+                              padding: '4px 12px',
+                            }}
+                            onClick={() =>
+                              handleEditDiagram(image.altDescription)
+                            }
+                          >
+                            Edit
+                          </Button>
+
+                          <Button
+                            style={{
+                              fontSize: '12px',
+                              padding: '4px 12px',
+                              backgroundColor: '#d32f2f',
+                              color: 'white',
+                            }}
+                            onClick={() =>
+                              handleRemoveDiagram(image.altDescription)
+                            }
+                          >
+                            Remove
+                          </Button>
+                        </Box>
+                      </Box>
                     ))}
+
                   {chartImagesState === 'success' &&
                     chartImages.length === 0 && (
-                      <Typography title="h4" textAlign="center">
-                        No selected diagrams
+                      <Typography
+                        title="h4"
+                        textAlign="center"
+                        sx={{
+                          fontFamily:
+                            'Recursive, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                        }}
+                      >
+                        No diagrams found in this document
                       </Typography>
                     )}
                 </Container>
               </Box>
-            </>
-          ) : (
-            <>
-              <Typography title="h3" textAlign="center" color={'#883a79'}>
-                Create and edit diagrams in Mermaid Chart and easily synchronize
-                documents with Google Docs.
-              </Typography>
-              <Typography paragraph textAlign="center" mt={4} color={'#883a79'}>
-                Don't have an account?{' '}
-                <MuiButton
-                  onClick={() => {}}
-                  sx={{
-                    textTransform: 'initial',
-                    color: 'inherit',
-                    padding: 0,
-                    minWidth: 'auto',
-                    fontSize: 'inherit',
-                    '&:hover': {
-                      textDecoration: 'underline',
-                      backgroundColor: 'white',
-                    },
-                  }}
-                >
-                  Sign up
-                </MuiButton>{' '}
-              </Typography>
+
+              {authState?.authorized && (
+                <Box sx={{ marginTop: '20px', textAlign: 'left' }}>
+                  <Button onClick={signOut}>Logout</Button>
+                </Box>
+              )}
             </>
           )}
         </div>
-        <Container
-          sx={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            padding: '0',
-          }}
-        >
-          <Typography paragraph textAlign="center" mb={0}>
-            <a
-              href="https://mermaidchart.com"
-              target="_blank"
-              rel="noreferrer"
-              style={{ color: '#883a79' }}
+        {!authState?.authorized && (
+          <Container
+            sx={{
+              textAlign: 'center',
+            }}
+          >
+            <Typography
+              paragraph
+              textAlign="center"
+              mb={0}
+              sx={{
+                fontFamily:
+                  'Recursive, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                fontSize: '14px',
+              }}
             >
-              Copyright © 2024 Mermaid Chart
-            </a>
-          </Typography>
-        </Container>
+              <a
+                href="https://mermaidchart.com"
+                target="_blank"
+                rel="noreferrer"
+                style={{ color: '#1E1A2E' }}
+              >
+                Copyright © 2025 Mermaid Chart
+              </a>
+            </Typography>
+          </Container>
+        )}
       </Container>
     </>
   );

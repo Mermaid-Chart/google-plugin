@@ -571,7 +571,7 @@ const Sidebar = () => {
                             'Recursive, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
                         }}
                       >
-                        No selected diagrams
+                        No diagrams found in this document
                       </Typography>
                     )}
                 </Container>

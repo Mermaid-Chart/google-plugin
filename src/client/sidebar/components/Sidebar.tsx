@@ -14,6 +14,7 @@ import { buildUrl } from '../../utils/helpers';
 import useAuth from '../../hooks/useAuth';
 import Button from '../../components/button';
 import { showAlertDialog } from '../../utils/alert';
+import analytics from '../../../analytics/analytics';
 
 interface ChartImage {
   altDescription: string;
@@ -137,6 +138,7 @@ const Sidebar = () => {
     options += ',left=' + left;
 
     try {
+       analytics.trackLogin();
       const authUrl = await serverFunctions.getOAuthURL();
       const windowObjectReference = window.open(
         authUrl,
@@ -152,6 +154,7 @@ const Sidebar = () => {
   };
 
   const handleDiagramsUpdate = async () => {
+    analytics.trackUpdateAllDiagrams();
     try {
       setUpdateDiagramsState('loading');
       await serverFunctions.syncImages();
@@ -164,6 +167,7 @@ const Sidebar = () => {
   };
 
   const handleSelectDiagram = async () => {
+    analytics.trackBrowseDiagram();
     try {
       setSelectDiagramState('loading');
       await serverFunctions.openSelectDiagramDialog();
@@ -176,6 +180,7 @@ const Sidebar = () => {
   };
 
   const handleCreateDiagram = async () => {
+    analytics.trackNewDiagram();
     try {
       setCreateDiagramState('loading');
       await serverFunctions.openCreateDiagramDialog();
@@ -196,6 +201,7 @@ const Sidebar = () => {
   };
 
   const handleEditDiagram = async (altDescription: string) => {
+    analytics.trackEditDiagram();
     try {
       await serverFunctions.selectChartImage(altDescription);
       await serverFunctions.openEditDiagramDialog();

@@ -31,7 +31,7 @@ const EditDiagramDialog = () => {
         const minor = params.get('minor');
         if (projectID && documentID && major && minor) {
           const iframeUrl = buildUrl(
-            `/app/projects/${projectID}/diagrams/${documentID}/version/v.${major}.${minor}/edit`,
+            `/app/projects/${projectID}/diagrams/${documentID}/version/v${major}.${minor}/edit?pluginSource=googledocs`,
             authState.token
           );
           setDiagramsUrl(iframeUrl);

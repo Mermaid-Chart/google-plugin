@@ -188,7 +188,10 @@ function getOAuthService() {
     })
     .setParam('response_type', 'code')
     .setParam('code_challenge_method', 'S256')
-    .setParam('code_challenge', userProps.getProperty('code_challenge') ?? '');
+    .setParam('code_challenge', userProps.getProperty('code_challenge') ?? '')
+    .setParam('utm_source', 'google_addon')
+    .setParam('utm_medium', 'docs')
+    .setParam('utm_campaign', 'plugin_usage');
 }
 
 export function getOAuthURL() {

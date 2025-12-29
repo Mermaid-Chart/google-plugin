@@ -1,13 +1,20 @@
 import { useEffect, useState } from 'react';
-import { buildUrl, handleDialogClose } from '../../utils/helpers';
+import {
+  buildUrl,
+  handleDialogClose,
+  compressBase64Image,
+} from '../../utils/helpers';
 import { serverFunctions } from '../../utils/serverFunctions';
 import useAuth from '../../hooks/useAuth';
-import { CircularProgress, Container, Typography } from '@mui/material';
+import { CircularProgress, Container, Typography, Box } from '@mui/material';
 import { showAlertDialog } from '../../utils/alert';
+import LoadingOverlay from '../../components/loading-overlay';
 
 const CreateDiagramDialog = () => {
   const { authState, authStatus } = useAuth();
   const [diagramsUrl, setDiagramsUrl] = useState('');
+  const [isInserting, setIsInserting] = useState(false);
+  const [iframeLoading, setIframeLoading] = useState(true);
 
   useEffect(() => {
     if (!authState?.authorized) return;
@@ -22,6 +29,13 @@ const CreateDiagramDialog = () => {
     const handleMessage = async (e: MessageEvent) => {
       const action = e.data.action;
       if (action === 'save') {
+        if (isInserting) {
+          console.log('Already inserting diagram, ignoring duplicate click');
+          return;
+        }
+
+        setIsInserting(true);
+
         const data = e.data.data;
         const metadata = new URLSearchParams({
           projectID: data.projectID,
@@ -31,14 +45,17 @@ const CreateDiagramDialog = () => {
         });
 
         try {
+          const compressedImage = await compressBase64Image(data.diagramImage);
+
           await serverFunctions.insertBase64ImageWithMetadata(
-            data.diagramImage,
+            compressedImage,
             metadata.toString()
           );
           handleDialogClose();
         } catch (error) {
           console.error('Error inserting image with metadata', error);
           showAlertDialog('Error inserting image, please try again');
+          setIsInserting(false);
         }
       }
     };
@@ -48,20 +65,23 @@ const CreateDiagramDialog = () => {
     return () => {
       window.removeEventListener('message', handleMessage);
     };
-  }, []);
+  }, [isInserting]);
+
+  const handleIframeLoad = () => {
+    setIframeLoading(false);
+  };
 
   if (authStatus === 'idle' || authStatus === 'loading') {
     return (
       <Container
         sx={{
           display: 'flex',
-          flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
           height: '96.5vh',
         }}
       >
-        <CircularProgress />
+        <CircularProgress size={40} />
       </Container>
     );
   }
@@ -77,28 +97,67 @@ const CreateDiagramDialog = () => {
           height: '96.5vh',
         }}
       >
-        <Typography variant="h5" gutterBottom my={2} textAlign="center">
+        <Typography variant="h6" gutterBottom textAlign="center">
           Error
         </Typography>
-        <Typography paragraph textAlign="center">
+        <Typography variant="body2" textAlign="center">
           Something went wrong. Please try again later.
         </Typography>
       </Container>
     );
   }
 
-  return (
-    <div style={{ padding: '3px', overflowX: 'hidden', height: '100%' }}>
-      <iframe
-        src={diagramsUrl}
-        title="diagrams"
-        style={{
-          border: 'none',
-          width: '100%',
+  if (!diagramsUrl) {
+    return (
+      <Container
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
           height: '96.5vh',
         }}
-      />
-    </div>
+      >
+        <CircularProgress size={40} />
+      </Container>
+    );
+  }
+
+  return (
+    <>
+      {isInserting && <LoadingOverlay />}
+      {iframeLoading && (
+        <Box
+          sx={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+            zIndex: 1000,
+          }}
+        >
+          <CircularProgress size={40} />
+        </Box>
+      )}
+      <div style={{ padding: '3px', overflowX: 'hidden', height: '100%' }}>
+        <iframe
+          src={diagramsUrl}
+          title="diagrams"
+          style={{
+            border: 'none',
+            width: '100%',
+            height: '96.5vh',
+            opacity: isInserting ? 0.5 : 1,
+            pointerEvents: isInserting ? 'none' : 'auto',
+          }}
+          onLoad={handleIframeLoad}
+        />
+      </div>
+    </>
   );
 };
 

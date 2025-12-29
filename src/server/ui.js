@@ -44,8 +44,8 @@ export function openCreateDiagramDialog() {
       }, false);
     </script>`
     )
-    .setWidth(1366)
-    .setHeight(768);
+    .setWidth(1600)
+    .setHeight(900);
   DocumentApp.getUi().showModalDialog(html, 'Create new diagram');
 }
 
@@ -68,8 +68,8 @@ export function openEditDiagramDialog() {
       }, false);
     </script>`
     )
-    .setWidth(1366)
-    .setHeight(768);
+    .setWidth(1600)
+    .setHeight(900);
 
   DocumentApp.getUi().showModalDialog(html, 'Edit Diagram');
 }
@@ -85,8 +85,8 @@ export function openPreviewDiagramDialog() {
       }, false);
     </script>`
     )
-    .setWidth(1366)
-    .setHeight(768);
+    .setWidth(1600)
+    .setHeight(900);
 
   DocumentApp.getUi().showModalDialog(html, 'Preview Diagram');
 }
@@ -102,8 +102,8 @@ export function openEditDiagramDialogWithUrl() {
       }, false);
     </script>`
     )
-    .setWidth(1366)
-    .setHeight(768);
+    .setWidth(1600)
+    .setHeight(900);
 
   DocumentApp.getUi().showModalDialog(html, 'Edit Diagram');
 }
@@ -119,8 +119,8 @@ export function openSelectDiagramDialog() {
       }, false);
     </script>`
     )
-    .setWidth(1366)
-    .setHeight(768);
+    .setWidth(1600)
+    .setHeight(900);
   DocumentApp.getUi().showModalDialog(html, 'Select Diagram');
 }
 
@@ -188,7 +188,10 @@ function getOAuthService() {
     })
     .setParam('response_type', 'code')
     .setParam('code_challenge_method', 'S256')
-    .setParam('code_challenge', userProps.getProperty('code_challenge') ?? '');
+    .setParam('code_challenge', userProps.getProperty('code_challenge') ?? '')
+    .setParam('utm_source', 'google_addon')
+    .setParam('utm_medium', 'docs')
+    .setParam('utm_campaign', 'plugin_usage');
 }
 
 export function getOAuthURL() {
@@ -495,6 +498,30 @@ export function selectChartImage(altDescription) {
 
   // Set the selection to the range that includes the second image
   DocumentApp.getActiveDocument().setSelection(range);
+}
+
+export function removeDiagramByAltDescription(altDescription) {
+  if (!altDescription) {
+    return { success: false, message: 'No diagram identifier provided.' };
+  }
+
+  const body = DocumentApp.getActiveDocument().getBody();
+  const images = body.getImages();
+  const imageToRemove = images.find(
+    (image) => image.getAltDescription() === altDescription
+  );
+
+  if (!imageToRemove) {
+    return { success: false, message: 'Diagram not found in document.' };
+  }
+
+  try {
+    imageToRemove.removeFromParent();
+    return { success: true, message: 'Diagram removed successfully.' };
+  } catch (error) {
+    Logger.log('Error removing image: ' + error.message);
+    return { success: false, message: 'Failed to remove diagram.' };
+  }
 }
 
 export function showAlertDialog(errorText) {

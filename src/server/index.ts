@@ -20,6 +20,12 @@ import {
   selectChartImage,
   getChartImages,
   showAlertDialog,
+  removeDiagramByAltDescription,
+  queueDiagramInsertion,
+  getPendingInsertion,
+  processPendingInsertion,
+  clearPendingInsertion,
+  sendAnalyticsEvent,
 } from './ui';
 
 // Public functions must be exported as named exports
@@ -45,4 +51,11 @@ export {
   selectChartImage,
   getChartImages,
   showAlertDialog,
+  removeDiagramByAltDescription,
+  queueDiagramInsertion,
+  getPendingInsertion,
+  processPendingInsertion,
+  clearPendingInsertion,
+  sendAnalyticsEvent,
 };
+

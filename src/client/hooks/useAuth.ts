@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { serverFunctions } from '../utils/serverFunctions';
 import { baseURL } from '../../config/urls';
+import analytics from '../../analytics/analytics';
 
 type Status = 'idle' | 'loading' | 'success' | 'error';
 
@@ -37,6 +38,7 @@ const useAuth = () => {
   }, [getAuth]);
 
   const signOut = async () => {
+    analytics.trackLogout();
     try {
       await serverFunctions.resetOAuth();
       setTimeout(getAuth, 500);

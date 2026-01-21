@@ -8,6 +8,7 @@ import {
   Box,
   Tabs,
   Tab,
+  AlertColor,
 } from '@mui/material';
 import { serverFunctions } from '../../utils/serverFunctions';
 import { buildUrl } from '../../utils/helpers';
@@ -15,6 +16,9 @@ import useAuth from '../../hooks/useAuth';
 import Button from '../../components/button';
 import { showAlertDialog } from '../../utils/alert';
 import analytics from '../../../analytics/analytics';
+import Toast from '../../components/toast';
+
+
 
 interface ChartImage {
   altDescription: string;
@@ -32,6 +36,13 @@ const Sidebar = () => {
   const [selectDiagramState, setSelectDiagramState] = useState('idle');
   const [updateDiagramsState, setUpdateDiagramsState] = useState('idle');
   const { authState, authStatus, getAuth, signOut } = useAuth();
+
+  // State for background insertion processing
+  const [isProcessingInsertion, setIsProcessingInsertion] = useState(false);
+  const [toastOpen, setToastOpen] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastSeverity, setToastSeverity] = useState<AlertColor>('success');
+  const insertionPollingRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!authState?.authorized) return;
@@ -63,6 +74,105 @@ const Sidebar = () => {
   useEffect(() => {
     getImages();
   }, [getImages]);
+
+  // Check for pending insertions and process them
+  const checkAndProcessPendingInsertion = useCallback(async () => {
+    if (isProcessingInsertion) return;
+
+    try {
+      const pending = await serverFunctions.getPendingInsertion();
+      if (pending) {
+        setIsProcessingInsertion(true);
+        const result = (await serverFunctions.processPendingInsertion()) as {
+          success: boolean;
+          message: string;
+        };
+
+        if (result.success) {
+          setToastMessage('Diagram inserted successfully!');
+          setToastSeverity('success');
+          getImages(); 
+        } else {
+          setToastMessage(result.message || 'Error inserting diagram');
+          setToastSeverity('error');
+        }
+        setToastOpen(true);
+        setIsProcessingInsertion(false);
+      }
+    } catch (error) {
+      console.error('Error processing pending insertion', error);
+      setToastMessage('Error inserting diagram, please try again');
+      setToastSeverity('error');
+      setToastOpen(true);
+      setIsProcessingInsertion(false);
+      try {
+        await serverFunctions.clearPendingInsertion();
+      } catch (clearError) {
+        console.error('Error clearing pending insertion', clearError);
+      }
+    }
+  }, [isProcessingInsertion, getImages]);
+
+  // Listen for pending insertions from dialogs via BroadcastChannel
+  useEffect(() => {
+    const channel = new BroadcastChannel('diagram_channel');
+
+    channel.onmessage = async (e) => {
+      if (e.data?.type === 'pendingInsertion') {
+        try {
+          const data = e.data.payload;
+
+          setIsProcessingInsertion(true);
+          setToastMessage('Inserting diagram...');
+          setToastSeverity('info');
+          setToastOpen(true);
+
+          if (data.operation === 'replace') {
+            await serverFunctions.replaceSelectedImageWithBase64AndSize(data.image, data.metadata);
+            setToastMessage('Diagram updated successfully!');
+          } else {
+            await serverFunctions.insertBase64ImageWithMetadata(data.image, data.metadata);
+            setToastMessage('Diagram inserted successfully!');
+          }
+
+          setToastSeverity('success');
+          getImages();
+        } catch (error) {
+          console.error('Error processing insertion from channel', error);
+          setToastMessage('Error inserting diagram');
+          setToastSeverity('error');
+        } finally {
+          setIsProcessingInsertion(false);
+        }
+      }
+    };
+
+    return () => channel.close();
+  }, [getImages]);
+
+  // Poll for pending insertions (Backup mechanism)
+  useEffect(() => {
+    if (!authState?.authorized) return;
+
+    // Check immediately on mount
+    checkAndProcessPendingInsertion();
+
+    // Set up polling interval (check every 2 seconds)
+    insertionPollingRef.current = window.setInterval(() => {
+      checkAndProcessPendingInsertion();
+    }, 2000);
+
+    return () => {
+      if (insertionPollingRef.current !== null) {
+        clearInterval(insertionPollingRef.current);
+        insertionPollingRef.current = null;
+      }
+    };
+  }, [authState?.authorized, checkAndProcessPendingInsertion]);
+
+  const handleToastClose = () => {
+    setToastOpen(false);
+  };
 
   useEffect(() => {
     const handleMessage = async (e: MessageEvent) => {
@@ -138,7 +248,7 @@ const Sidebar = () => {
     options += ',left=' + left;
 
     try {
-       analytics.trackLogin();
+      analytics.trackLogin(); 
       const authUrl = await serverFunctions.getOAuthURL();
       const windowObjectReference = window.open(
         authUrl,
@@ -167,7 +277,7 @@ const Sidebar = () => {
   };
 
   const handleSelectDiagram = async () => {
-    analytics.trackBrowseDiagram();
+    analytics.trackBrowseDiagram(); 
     try {
       setSelectDiagramState('loading');
       await serverFunctions.openSelectDiagramDialog();
@@ -266,7 +376,7 @@ const Sidebar = () => {
 
   return (
     <>
-      {overlayEnabled && (
+      {(overlayEnabled || isProcessingInsertion) && (
         <Box
           sx={{
             position: 'fixed',
@@ -276,12 +386,18 @@ const Sidebar = () => {
             height: '100%',
             backgroundColor: 'rgba(255, 255, 255, 0.8)',
             display: 'flex',
+            flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
             zIndex: 9999,
           }}
         >
           <CircularProgress size={40} />
+          {isProcessingInsertion && (
+            <Typography sx={{ mt: 2 }} variant="body2" color="textSecondary">
+              Inserting diagram...
+            </Typography>
+          )}
         </Box>
       )}
       <Container
@@ -397,7 +513,10 @@ const Sidebar = () => {
 
               <MuiButton
                 onClick={() =>
-                  window.open('https://mermaidchart.com/app/sign-up', '_blank')
+                  window.open(
+                    'https://mermaidchart.com/app/sign-up',
+                    '_blank'
+                  )
                 }
                 sx={{
                   textTransform: 'none',
@@ -434,6 +553,7 @@ const Sidebar = () => {
                 style={{ marginBottom: '16px' }}
                 onClick={handleCreateDiagram}
                 loading={createDiagramState === 'loading'}
+                disabled={isProcessingInsertion}
               >
                 New diagram
               </Button>
@@ -444,6 +564,7 @@ const Sidebar = () => {
                 style={{ marginBottom: '16px' }}
                 onClick={handleSelectDiagram}
                 loading={selectDiagramState === 'loading'}
+                disabled={isProcessingInsertion}
               >
                 Browse diagrams
               </Button>
@@ -453,6 +574,7 @@ const Sidebar = () => {
               <Button
                 onClick={handleDiagramsUpdate}
                 loading={updateDiagramsState === 'loading'}
+                disabled={isProcessingInsertion}
               >
                 Update all diagrams
               </Button>
@@ -493,6 +615,7 @@ const Sidebar = () => {
                     marginTop: '20px',
                     height: 'calc(100vh - 440px)',
                     overflowY: 'auto',
+                    padding: 0,
                   }}
                 >
                   {chartImagesState === 'loading' &&
@@ -522,13 +645,14 @@ const Sidebar = () => {
                           border: '1px solid #e0e0e0',
                           borderRadius: '8px',
                           backgroundColor: '#fafafa',
+                          width: '100%',
                         }}
                       >
                         <img
                           src={image.image}
                           alt={image.altDescription}
                           style={{
-                            width: '200px',
+                            width: '100%',
                             borderRadius: '4px',
                             cursor: 'pointer',
                           }}
@@ -595,6 +719,7 @@ const Sidebar = () => {
           <Container
             sx={{
               textAlign: 'center',
+              paddingBottom: '20px',
             }}
           >
             <Typography
@@ -619,6 +744,12 @@ const Sidebar = () => {
           </Container>
         )}
       </Container>
+      <Toast
+        open={toastOpen}
+        message={toastMessage}
+        severity={toastSeverity}
+        onClose={handleToastClose}
+      />
     </>
   );
 };

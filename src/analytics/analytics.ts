@@ -1,5 +1,15 @@
-import httpClient from './httpClient';
 class Analytics {
+
+  private async getServerFunctions() {
+    try {
+      // Dynamic import to avoid circular dependency issues
+      const { serverFunctions } = await import('../client/utils/serverFunctions');
+      return serverFunctions;
+    } catch (error) {
+      console.warn('Failed to import serverFunctions:', error);
+      return null;
+    }
+  }
 
   public sendEvent(eventName: string, eventID:string, errorMessage?: string, diagramType?:string, userLoginState: boolean = true) {
     const analyticsID = getAnalyticsID();
@@ -16,10 +26,16 @@ class Analytics {
       diagramType
     };
 
-    httpClient.post('/rest-api/plugins/pulse', payload).catch(error => {
-      if (error.code !== 'ERR_NETWORK') {
-        console.error('Failed to send analytics event:', error);
+    this.getServerFunctions().then(serverFunctions => {
+      if (serverFunctions && serverFunctions.sendAnalyticsEvent) {
+        serverFunctions.sendAnalyticsEvent(payload).catch(error => {
+          console.error('Failed to send analytics event:', error);
+        });
+      } else {
+        console.warn('Analytics service unavailable - serverFunctions not available');
       }
+    }).catch(error => {
+      console.error('Failed to send analytics event:', error);
     });
   }
 

@@ -4,16 +4,14 @@ import {
   handleDialogClose,
   compressBase64Image,
 } from '../../utils/helpers';
-import { serverFunctions } from '../../utils/serverFunctions';
+
 import useAuth from '../../hooks/useAuth';
 import { CircularProgress, Container, Typography, Box } from '@mui/material';
 import { showAlertDialog } from '../../utils/alert';
-import LoadingOverlay from '../../components/loading-overlay';
 
 const CreateDiagramDialog = () => {
   const { authState, authStatus } = useAuth();
   const [diagramsUrl, setDiagramsUrl] = useState('');
-  const [isInserting, setIsInserting] = useState(false);
   const [iframeLoading, setIframeLoading] = useState(true);
 
   useEffect(() => {
@@ -29,13 +27,6 @@ const CreateDiagramDialog = () => {
     const handleMessage = async (e: MessageEvent) => {
       const action = e.data.action;
       if (action === 'save') {
-        if (isInserting) {
-          console.log('Already inserting diagram, ignoring duplicate click');
-          return;
-        }
-
-        setIsInserting(true);
-
         const data = e.data.data;
         const metadata = new URLSearchParams({
           projectID: data.projectID,
@@ -47,15 +38,21 @@ const CreateDiagramDialog = () => {
         try {
           const compressedImage = await compressBase64Image(data.diagramImage);
 
-          await serverFunctions.insertBase64ImageWithMetadata(
-            compressedImage,
-            metadata.toString()
-          );
+          // Pass data to sidebar via BroadcastChannel and close immediately
+          const channel = new BroadcastChannel('diagram_channel');
+          channel.postMessage({
+            type: 'pendingInsertion',
+            payload: {
+              image: compressedImage,
+              metadata: metadata.toString(),
+              operation: 'insert',
+            },
+          });
+          channel.close();
           handleDialogClose();
         } catch (error) {
-          console.error('Error inserting image with metadata', error);
-          showAlertDialog('Error inserting image, please try again');
-          setIsInserting(false);
+          console.error('Error preparing diagram insertion', error);
+          showAlertDialog('Error preparing diagram, please try again');
         }
       }
     };
@@ -65,7 +62,7 @@ const CreateDiagramDialog = () => {
     return () => {
       window.removeEventListener('message', handleMessage);
     };
-  }, [isInserting]);
+  }, []);
 
   const handleIframeLoad = () => {
     setIframeLoading(false);
@@ -124,7 +121,6 @@ const CreateDiagramDialog = () => {
 
   return (
     <>
-      {isInserting && <LoadingOverlay />}
       {iframeLoading && (
         <Box
           sx={{
@@ -151,8 +147,7 @@ const CreateDiagramDialog = () => {
             border: 'none',
             width: '100%',
             height: '96.5vh',
-            opacity: isInserting ? 0.5 : 1,
-            pointerEvents: isInserting ? 'none' : 'auto',
+            opacity: 1,
           }}
           onLoad={handleIframeLoad}
         />

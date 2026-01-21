@@ -7,13 +7,11 @@ import {
 } from '../../utils/helpers';
 import useAuth from '../../hooks/useAuth';
 import { showAlertDialog } from '../../utils/alert';
-import LoadingOverlay from '../../components/loading-overlay';
 import { CircularProgress, Container, Typography, Box } from '@mui/material';
 
 const EditDiagramDialog = () => {
   const { authState, authStatus } = useAuth();
   const [diagramsUrl, setDiagramsUrl] = useState('');
-  const [isUpdating, setIsUpdating] = useState(false);
   const [iframeLoading, setIframeLoading] = useState(true);
 
   useEffect(() => {
@@ -49,12 +47,6 @@ const EditDiagramDialog = () => {
       const action = e.data.action;
       console.log('action', action);
       if (action === 'save') {
-        if (isUpdating) {
-          return;
-        }
-
-        setIsUpdating(true);
-
         const data = e.data.data;
         const metadata = new URLSearchParams({
           projectID: data.projectID,
@@ -65,15 +57,21 @@ const EditDiagramDialog = () => {
         try {
           const compressedImage = await compressBase64Image(data.diagramImage);
 
-          await serverFunctions.replaceSelectedImageWithBase64AndSize(
-            compressedImage,
-            metadata.toString()
-          );
+          // Pass data to sidebar via BroadcastChannel and close immediately
+          const channel = new BroadcastChannel('diagram_channel');
+          channel.postMessage({
+            type: 'pendingInsertion',
+            payload: {
+              image: compressedImage,
+              metadata: metadata.toString(),
+              operation: 'replace',
+            },
+          });
+          channel.close();
           handleDialogClose();
         } catch (error) {
-          console.error('Error updating image with metadata', error);
-          showAlertDialog('Error updating image, please try again');
-          setIsUpdating(false);
+          console.error('Error preparing diagram update', error);
+          showAlertDialog('Error preparing diagram update, please try again');
         }
       }
     };
@@ -83,7 +81,7 @@ const EditDiagramDialog = () => {
     return () => {
       window.removeEventListener('message', handleMessage);
     };
-  }, [isUpdating]);
+  }, []);
 
   const handleIframeLoad = () => {
     setIframeLoading(false);
@@ -142,7 +140,6 @@ const EditDiagramDialog = () => {
 
   return (
     <>
-      {isUpdating && <LoadingOverlay />}
       {iframeLoading && (
         <Box
           sx={{
@@ -169,8 +166,7 @@ const EditDiagramDialog = () => {
             border: 'none',
             width: '100%',
             height: '96.5vh',
-            opacity: isUpdating ? 0.5 : 1,
-            pointerEvents: isUpdating ? 'none' : 'auto',
+            opacity: 1,
           }}
           onLoad={handleIframeLoad}
         />

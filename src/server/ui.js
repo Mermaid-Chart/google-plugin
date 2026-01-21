@@ -519,11 +519,131 @@ export function removeDiagramByAltDescription(altDescription) {
     imageToRemove.removeFromParent();
     return { success: true, message: 'Diagram removed successfully.' };
   } catch (error) {
-    Logger.log('Error removing image: ' + error.message);
     return { success: false, message: 'Failed to remove diagram.' };
+  }
+}
+
+/**
+ * Queues a diagram insertion to be processed in the background.
+ * @param {string} imageData - The compressed base64 image string.
+ * @param {string} metadata - A string containing metadata to store with the image.
+ * @param {string} operationType - Either 'insert' for new diagrams or 'replace' for editing existing ones.
+ * @returns {boolean} - Returns true if queued successfully.
+ */
+export function queueDiagramInsertion(imageData, metadata, operationType) {
+  try {
+    const userProps = PropertiesService.getUserProperties();
+    const pendingInsertion = {
+      imageData: imageData,
+      metadata: metadata,
+      operationType: operationType,
+      timestamp: new Date().toISOString(),
+    };
+    userProps.setProperty(
+      'pendingDiagramInsertion',
+      JSON.stringify(pendingInsertion)
+    );
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
+/**
+ * Gets the pending diagram insertion from the queue.
+ * @returns {Object | null} - The pending insertion data or null if none exists.
+ */
+export function getPendingInsertion() {
+  try {
+    const userProps = PropertiesService.getUserProperties();
+    const pendingData = userProps.getProperty('pendingDiagramInsertion');
+    if (!pendingData) {
+      return null;
+    }
+    return JSON.parse(pendingData);
+  } catch (error) {
+    return null;
+  }
+}
+
+/**
+ * Processes the pending diagram insertion and inserts/replaces the image in the document.
+ * @returns {Object} - Result object with success status and message.
+ */
+export function processPendingInsertion() {
+  try {
+    const pendingInsertion = getPendingInsertion();
+    if (!pendingInsertion) {
+      return { success: false, message: 'No pending insertion found.' };
+    }
+
+    const { imageData, metadata, operationType } = pendingInsertion;
+
+    if (operationType === 'insert') {
+      insertBase64ImageWithMetadata(imageData, metadata);
+    } else if (operationType === 'replace') {
+      replaceSelectedImageWithBase64AndSize(imageData, metadata);
+    } else {
+      return { success: false, message: 'Invalid operation type.' };
+    }
+
+    // Clear the pending insertion after successful processing
+    clearPendingInsertion();
+
+    return { success: true, message: 'Diagram inserted successfully.' };
+  } catch (error) {
+    // Clear the pending insertion even on error to prevent infinite retries
+    clearPendingInsertion();
+    return { success: false, message: 'Error inserting diagram: ' + error.message };
+  }
+}
+
+/**
+ * Clears the pending diagram insertion from the queue.
+ */
+export function clearPendingInsertion() {
+  try {
+    const userProps = PropertiesService.getUserProperties();
+    userProps.deleteProperty('pendingDiagramInsertion');
+  } catch (error) {
+    Logger.log('Error clearing pending insertion: ' + error.message);
   }
 }
 
 export function showAlertDialog(errorText) {
   DocumentApp.getUi().alert(errorText);
+}
+
+/**
+ * Sends analytics data to the Mermaid Chart analytics endpoint
+ * This function acts as a proxy to avoid CORS issues
+ * @param {Object} payload - The analytics payload to send
+ * @returns {Object} - Result object with success status
+ */
+export function sendAnalyticsEvent(payload) {
+  try {
+    const baseURL = getBaseUrl();
+    if (!baseURL) {
+      throw new Error('Base URL is not defined.');
+    }
+
+    const analyticsUrl = `${baseURL}/rest-api/plugins/pulse`;
+    
+    const response = UrlFetchApp.fetch(analyticsUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true,
+    });
+
+    if (response.getResponseCode() >= 200 && response.getResponseCode() < 300) {
+      return { success: true };
+    } else {
+      return { success: false, error: `HTTP ${response.getResponseCode()}` };
+    }
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
 }

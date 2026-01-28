@@ -26,7 +26,7 @@ const SelectDiagramDialog = () => {
       return;
     }
     const url = buildUrl(
-      '/app/plugins/select?pluginSource=googledocs',
+      '/app/plugins/confluence/select?pluginSource=googledocs',
       authState.token
     );
     setDiagramsUrl(url);
@@ -35,6 +35,8 @@ const SelectDiagramDialog = () => {
   useEffect(() => {
     const handleMessage = async (e: MessageEvent) => {
       const action = e.data.action;
+      const type = e.data.type;
+      
       if (action === 'save') {
         const data = e.data.data;
         const metadata = new URLSearchParams({
@@ -63,6 +65,9 @@ const SelectDiagramDialog = () => {
           showAlertDialog('Error preparing diagram, please try again');
           console.error('Error preparing diagram insertion', error);
         }
+      } else if (type === 'mermaid-chart-google-docs-back' && action === 'navigateBack') {
+        // Handle back navigation from the iframe - close the dialog
+        handleDialogClose();
       }
     };
 

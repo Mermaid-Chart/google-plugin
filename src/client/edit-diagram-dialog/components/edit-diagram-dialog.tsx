@@ -45,6 +45,8 @@ const EditDiagramDialog = () => {
   useEffect(() => {
     const handleMessage = async (e: MessageEvent) => {
       const action = e.data.action;
+      const type = e.data.type;
+      
       console.log('action', action);
       if (action === 'save') {
         const data = e.data.data;
@@ -73,6 +75,8 @@ const EditDiagramDialog = () => {
           console.error('Error preparing diagram update', error);
           showAlertDialog('Error preparing diagram update, please try again');
         }
+      } else if (type === 'mermaid-chart-google-docs-back' && action === 'navigateBack') {
+        handleDialogClose();
       }
     };
 

@@ -27,6 +27,7 @@ const useAuth = () => {
       const state = await serverFunctions.getAuthorizationState();
       setAuthState(state as AuthState);
       setAuthStatus('success');
+      await serverFunctions.refreshMenu();
     } catch (error) {
       console.log('Error getting auth data', error);
       setAuthStatus('error');
@@ -41,7 +42,9 @@ const useAuth = () => {
     analytics.trackLogout();
     try {
       await serverFunctions.resetOAuth();
-      setTimeout(getAuth, 500);
+      setTimeout(async () => {
+        await getAuth();
+      }, 500);
     } catch (error) {
       console.error('Error revoking OAuth:', error);
     }

@@ -1,20 +1,37 @@
 function buildMenu() {
-  const authState = getAuthorizationState();
   const menu = DocumentApp.getUi().createAddonMenu();
+  
   menu.addItem('Start', 'openSidebar');
-  if (authState.authorized) {
+  
+  let authorized = false;
+  
+  try {
+    const authState = getAuthorizationState();
+    authorized = authState && authState.authorized;
+  } catch (e) {
+    console.log('Error checking authorization state: ' + e);
+    Logger.log('Auth check failed: ' + e);
+  }
+  
+  if (authorized) {
     menu.addSeparator();
     menu.addItem('New diagram', 'openCreateDiagramDialog');
     menu.addItem('Browse diagrams', 'openSelectDiagramDialog');
     menu.addItem('Edit selected diagram', 'openEditDiagramDialog');
   }
+  
   menu.addSeparator();
   menu.addItem('About', 'openAboutDialog');
+  
   menu.addToUi();
 }
 
-export function onOpen() {
+export function onOpen(e) {
   buildMenu();
+}
+
+export function onInstall(e) {
+  onOpen(e);
 }
 
 export function refreshMenu() {

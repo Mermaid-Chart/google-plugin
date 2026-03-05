@@ -26,6 +26,8 @@ const CreateDiagramDialog = () => {
   useEffect(() => {
     const handleMessage = async (e: MessageEvent) => {
       const action = e.data.action;
+      const type = e.data.type;
+      
       if (action === 'save') {
         const data = e.data.data;
         const metadata = new URLSearchParams({
@@ -54,6 +56,8 @@ const CreateDiagramDialog = () => {
           console.error('Error preparing diagram insertion', error);
           showAlertDialog('Error preparing diagram, please try again');
         }
+      } else if (type === 'mermaid-chart-google-docs-back' && action === 'navigateBack') {
+        handleDialogClose();
       }
     };
 

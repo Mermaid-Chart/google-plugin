@@ -1,7 +1,7 @@
 import { baseURL } from '../../config/urls';
 
 export const buildUrl = (pathname: string, accessToken: string) => {
-  return `${baseURL}/oauth/frame?token=${accessToken}&redirect=${pathname}`;
+  return `${baseURL}/oauth/frame?token=${accessToken}&redirect=${encodeURIComponent(pathname)}`;
 };
 
 export const handleDialogClose = () => {

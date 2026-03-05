@@ -173,7 +173,7 @@ export function openHelpDialog() {
 
 export function openSidebar() {
   const html =
-    HtmlService.createHtmlOutputFromFile('sidebar').setTitle('Mermaid Chart');
+    HtmlService.createHtmlOutputFromFile('sidebar').setTitle('Mermaid');
   DocumentApp.getUi().showSidebar(html);
 }
 

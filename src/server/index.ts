@@ -1,5 +1,7 @@
 import {
   onOpen,
+  onInstall,
+  refreshMenu,
   openCreateDiagramDialog,
   openEditDiagramDialog,
   openEditDiagramDialogWithUrl,
@@ -31,6 +33,8 @@ import {
 // Public functions must be exported as named exports
 export {
   onOpen,
+  onInstall,
+  refreshMenu,
   openCreateDiagramDialog,
   openEditDiagramDialog,
   openEditDiagramDialogWithUrl,

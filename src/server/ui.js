@@ -1,16 +1,41 @@
-export function onOpen() {
-  const menu = DocumentApp.getUi()
-    .createAddonMenu()
-    .addItem('Start', 'openSidebar')
-    .addSeparator()
-    .addItem('New diagram', 'openCreateDiagramDialog')
-    .addItem('Browse diagrams', 'openSelectDiagramDialog')
-    .addItem('Edit selected diagram', 'openEditDiagramDialog')
-    .addSeparator()
-    .addItem('About', 'openAboutDialog')
-    .addItem('Help', 'openHelpDialog');
-
+function buildMenu() {
+  const menu = DocumentApp.getUi().createAddonMenu();
+  
+  menu.addItem('Start', 'openSidebar');
+  
+  let authorized = false;
+  
+  try {
+    const authState = getAuthorizationState();
+    authorized = authState && authState.authorized;
+  } catch (e) {
+    console.log('Error checking authorization state: ' + e);
+    Logger.log('Auth check failed: ' + e);
+  }
+  
+  if (authorized) {
+    menu.addSeparator();
+    menu.addItem('New diagram', 'openCreateDiagramDialog');
+    menu.addItem('Browse diagrams', 'openSelectDiagramDialog');
+    menu.addItem('Edit selected diagram', 'openEditDiagramDialog');
+  }
+  
+  menu.addSeparator();
+  menu.addItem('About', 'openAboutDialog');
+  
   menu.addToUi();
+}
+
+export function onOpen(e) {
+  buildMenu();
+}
+
+export function onInstall(e) {
+  onOpen(e);
+}
+
+export function refreshMenu() {
+  buildMenu();
 }
 
 export function setBaseUrl(url) {
@@ -128,11 +153,12 @@ export function openAboutDialog() {
   var ui = DocumentApp.getUi();
 
   var text =
-    'PlantUML Gizmo was written for use in the OO Analysis and Design courses at École de technologie supérieure, and has been used by Google Engineers on Android and Google Pay.\n\n' +
-    'It uses JavaScript API Client Code described at http://plantuml.sourceforge.net/codejavascript.html as well as inflating routines at http://www.planttext.com/javascript/jquery-plantuml/plantuml.js\n\n' +
-    'Find me on twitter @thefuhrmanator. Version 15 (2019-11-22)';
+    'Mermaid for Google Docs \n\n' +
+    'Publisher: Mermaid Chart Inc\n' +
+    'Mermaid for Google Docs brings flexible, collaborative diagramming directly into your documents. Create, insert, and edit diagrams without leaving Google Docs—using Markdown syntax, the Visual Editor, or Mermaid AI\n\n' +
+    'For detailed information, reviews, and marketplace details, visit the Google Workspace Marketplace.';
 
-  ui.alert('About', text, ui.ButtonSet.OK);
+  ui.alert('Add-on Information', text, ui.ButtonSet.OK);
 }
 
 export function openHelpDialog() {
@@ -155,6 +181,7 @@ export function handleCallback(callbackRequest) {
   var service = getOAuthService();
   var authorized = service.handleCallback(callbackRequest);
   if (authorized) {
+    refreshMenu();
     return HtmlService.createHtmlOutput(
       '<html><body>Success! You can close this window.<script>window.setTimeout(function() { google.script.host.close(); }, 1000);</script></body></html>'
     );

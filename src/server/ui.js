@@ -173,7 +173,7 @@ export function openHelpDialog() {
 
 export function openSidebar() {
   const html =
-    HtmlService.createHtmlOutputFromFile('sidebar').setTitle('Mermaid Chart');
+    HtmlService.createHtmlOutputFromFile('sidebar').setTitle('Mermaid');
   DocumentApp.getUi().showSidebar(html);
 }
 
@@ -307,16 +307,88 @@ export function insertBase64ImageWithMetadata(
   // Get the active document
   const doc = DocumentApp.getActiveDocument();
 
-  // Get the cursor position
+  let element;
+
+  // Try to get the cursor position first
   const cursor = doc.getCursor();
-  if (!cursor) {
-    throw new Error('Cannot find a cursor in the document.');
+  if (cursor) {
+    // Insert the image at the cursor position
+    element = cursor.insertInlineImage(blob);
+  } else {
+    // Check if there's a selection instead
+    const selection = doc.getSelection();
+    if (selection) {
+      const selectedElements = selection.getRangeElements();
+      if (selectedElements.length > 0) {
+        // Get the position where we want to insert the image
+        const firstElement = selectedElements[0];
+        let startOffset = firstElement.getStartOffset();
+        const elementToUse = firstElement.getElement();
+        
+        // Ensure offset is not negative
+        if (startOffset < 0) {
+          startOffset = 0;
+        }
+        
+        // Insert image based on element type
+        if (elementToUse.getType() === DocumentApp.ElementType.TEXT) {
+          const textElement = elementToUse.asText();
+          const parentElement = textElement.getParent();
+          
+          if (parentElement.getType() === DocumentApp.ElementType.PARAGRAPH) {
+            const paragraph = parentElement.asParagraph();
+            // Find the position of the text element within the paragraph
+            const textIndex = paragraph.getChildIndex(textElement);
+            if (textIndex >= 0 && startOffset < textElement.getText().length) {
+              element = paragraph.insertInlineImage(textIndex, blob);
+            } else {
+              element = paragraph.insertInlineImage(paragraph.getNumChildren(), blob);
+            }
+          } else if (parentElement.getType() === DocumentApp.ElementType.LIST_ITEM) {
+            const listItem = parentElement.asListItem();
+            // Find the position of the text element within the list item
+            const textIndex = listItem.getChildIndex(textElement);
+            if (textIndex >= 0 && startOffset < textElement.getText().length) {
+              element = listItem.insertInlineImage(textIndex, blob);
+            } else {
+              element = listItem.insertInlineImage(listItem.getNumChildren(), blob);
+            }
+          } else {
+            // Fallback - insert at end of document
+            const body = doc.getBody();
+            const paragraph = body.appendParagraph('');
+            element = paragraph.insertInlineImage(0, blob);
+          }
+        } else if (elementToUse.getType() === DocumentApp.ElementType.PARAGRAPH) {
+          const paragraph = elementToUse.asParagraph();
+          // Ensure we don't exceed the number of children
+          const maxIndex = paragraph.getNumChildren();
+          const insertIndex = Math.min(Math.max(startOffset, 0), maxIndex);
+          element = paragraph.insertInlineImage(insertIndex, blob);
+        } else if (elementToUse.getType() === DocumentApp.ElementType.LIST_ITEM) {
+          const listItem = elementToUse.asListItem();
+          // Ensure we don't exceed the number of children
+          const maxIndex = listItem.getNumChildren();
+          const insertIndex = Math.min(Math.max(startOffset, 0), maxIndex);
+          element = listItem.insertInlineImage(insertIndex, blob);
+        } else {
+          // For other element types, insert at the end of the document
+          const body = doc.getBody();
+          const paragraph = body.appendParagraph('');
+          element = paragraph.insertInlineImage(0, blob);
+        }
+      } else {
+        throw new Error('Cannot find a valid location to insert the image. Please place your cursor where you want to insert the diagram.');
+      }
+    } else {
+      // No cursor and no selection - insert at the end of the document
+      const body = doc.getBody();
+      const paragraph = body.appendParagraph('');
+      element = paragraph.insertInlineImage(0, blob);
+    }
   }
 
-  // Insert the image at the cursor position
-  const element = cursor.insertInlineImage(blob);
   setElementSize(element, maxWidth);
-
   element.setAltDescription(metadata);
 }
 

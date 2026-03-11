@@ -4,19 +4,17 @@ import {
   Container,
   Typography,
   Button as MuiButton,
-  Divider,
   Box,
-  Tabs,
-  Tab,
   AlertColor,
 } from '@mui/material';
 import { serverFunctions } from '../../utils/serverFunctions';
-import { buildUrl } from '../../utils/helpers';
+import { buildUrl, compressBase64Image } from '../../utils/helpers';
 import useAuth from '../../hooks/useAuth';
 import Button from '../../components/button';
 import { showAlertDialog } from '../../utils/alert';
 import analytics from '../../../analytics/analytics';
 import Toast from '../../components/toast';
+import { AccountTreeIcon, FolderOpenIcon, CachedIcon, LogoutIcon } from '../../assets/icons';
 
 
 
@@ -27,6 +25,8 @@ interface ChartImage {
 
 const Sidebar = () => {
   const [tab, setTab] = useState(0);
+  const [tabRefreshCount, setTabRefreshCount] = useState(0);
+  const [iframeLoading, setIframeLoading] = useState(true);
   const [overlayEnabled, setOverlayEnabled] = useState(false);
   const intervalRef = useRef<number | null>(null);
   const [diagramsUrl, setDiagramsUrl] = useState<string>('');
@@ -35,6 +35,8 @@ const Sidebar = () => {
   const [createDiagramState, setCreateDiagramState] = useState('idle');
   const [selectDiagramState, setSelectDiagramState] = useState('idle');
   const [updateDiagramsState, setUpdateDiagramsState] = useState('idle');
+  const [editingDiagram, setEditingDiagram] = useState<string | null>(null);
+  const [removingDiagram, setRemovingDiagram] = useState<string | null>(null);
   const { authState, authStatus, getAuth, signOut } = useAuth();
 
   // State for background insertion processing
@@ -42,6 +44,7 @@ const Sidebar = () => {
   const [toastOpen, setToastOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [toastSeverity, setToastSeverity] = useState<AlertColor>('success');
+  const [logoutLoading, setLogoutLoading] = useState(false);
   const insertionPollingRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -51,6 +54,7 @@ const Sidebar = () => {
       authState.token
     );
     setDiagramsUrl(url);
+    setIframeLoading(true);
     if (intervalRef.current !== null) {
       clearInterval(intervalRef?.current);
       intervalRef.current = null;
@@ -91,7 +95,7 @@ const Sidebar = () => {
         if (result.success) {
           setToastMessage('Diagram inserted successfully!');
           setToastSeverity('success');
-          getImages(); 
+          getImages();
         } else {
           setToastMessage(result.message || 'Error inserting diagram');
           setToastSeverity('error');
@@ -127,11 +131,14 @@ const Sidebar = () => {
           setToastSeverity('info');
           setToastOpen(true);
 
+          // Ensure image is compressed (in case it wasn't compressed before sending)
+          const compressedImage = await compressBase64Image(data.image);
+
           if (data.operation === 'replace') {
-            await serverFunctions.replaceSelectedImageWithBase64AndSize(data.image, data.metadata);
+            await serverFunctions.replaceSelectedImageWithBase64AndSize(compressedImage, data.metadata);
             setToastMessage('Diagram updated successfully!');
           } else {
-            await serverFunctions.insertBase64ImageWithMetadata(data.image, data.metadata);
+            await serverFunctions.insertBase64ImageWithMetadata(compressedImage, data.metadata);
             setToastMessage('Diagram inserted successfully!');
           }
 
@@ -180,6 +187,7 @@ const Sidebar = () => {
       const actionData = e.data;
 
       if (action === 'save') {
+        console.log('Received save action from dialog');
         const data = actionData.data;
         if (!data) return;
         const metadata = new URLSearchParams({
@@ -189,14 +197,28 @@ const Sidebar = () => {
           minor: data.minor,
         });
         try {
+          setIsProcessingInsertion(true);
+          setToastMessage('Inserting diagram...');
+          setToastSeverity('info');
+          setToastOpen(true);
+
+          const compressedImage = await compressBase64Image(data.diagramImage);
           await serverFunctions.insertBase64ImageWithMetadata(
-            data.diagramImage,
+            compressedImage,
             metadata.toString()
           );
+          console.log('Diagram inserted successfully from dialog');
+
+          setToastMessage('Diagram inserted successfully!');
+          setToastSeverity('success');
           getImages();
         } catch (error) {
           console.error('Error inserting image with metadata', error);
+          setToastMessage('Error inserting diagram');
+          setToastSeverity('error');
           showAlertDialog('Error inserting image, please try again');
+        } finally {
+          setIsProcessingInsertion(false);
         }
         return;
       }
@@ -230,7 +252,20 @@ const Sidebar = () => {
     };
   }, [getImages]);
 
+  const handleLogout = async () => {
+    setLogoutLoading(true);
+    try {
+      await signOut();
+    } finally {
+      setLogoutLoading(false);
+    }
+  };
+
   const handleTabSwitch = (tabIndex: number) => {
+    if (tabIndex === 0 && tab !== 0) {
+      setTabRefreshCount((prev) => prev + 1);
+      setIframeLoading(true);
+    }
     setTab(tabIndex);
     if (chartImagesState !== 'loading') {
       getImages();
@@ -248,7 +283,7 @@ const Sidebar = () => {
     options += ',left=' + left;
 
     try {
-      analytics.trackLogin(); 
+      analytics.trackLogin();
       const authUrl = await serverFunctions.getOAuthURL();
       const windowObjectReference = window.open(
         authUrl,
@@ -277,7 +312,7 @@ const Sidebar = () => {
   };
 
   const handleSelectDiagram = async () => {
-    analytics.trackBrowseDiagram(); 
+    analytics.trackBrowseDiagram();
     try {
       setSelectDiagramState('loading');
       await serverFunctions.openSelectDiagramDialog();
@@ -313,16 +348,20 @@ const Sidebar = () => {
   const handleEditDiagram = async (altDescription: string) => {
     analytics.trackEditDiagram();
     try {
+      setEditingDiagram(altDescription);
       await serverFunctions.selectChartImage(altDescription);
       await serverFunctions.openEditDiagramDialog();
     } catch (error) {
       console.error('Error editing diagram', error);
       showAlertDialog('Error editing diagram, please try again');
+    } finally {
+      setEditingDiagram(null);
     }
   };
 
   const handleRemoveDiagram = async (altDescription: string) => {
     try {
+      setRemovingDiagram(altDescription);
       const result = await serverFunctions.removeDiagramByAltDescription(
         altDescription
       );
@@ -335,6 +374,8 @@ const Sidebar = () => {
     } catch (error) {
       console.error('Error removing diagram', error);
       showAlertDialog('Error removing diagram, please try again');
+    } finally {
+      setRemovingDiagram(null);
     }
   };
 
@@ -345,7 +386,8 @@ const Sidebar = () => {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          height: 'calc(100vh - 114px)',
+          height: '100vh',
+          overflow: 'hidden',
         }}
       >
         <CircularProgress size={40} />
@@ -361,7 +403,8 @@ const Sidebar = () => {
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          height: 'calc(100vh - 114px)',
+          height: '100vh',
+          overflow: 'hidden',
         }}
       >
         <Typography variant="h6" gutterBottom textAlign="center">
@@ -375,7 +418,7 @@ const Sidebar = () => {
   }
 
   return (
-    <>
+    <div style={{ backgroundColor: '#f0f4f9', height: '100vh', overflow: 'hidden' }}>
       {(overlayEnabled || isProcessingInsertion) && (
         <Box
           sx={{
@@ -403,24 +446,17 @@ const Sidebar = () => {
       <Container
         sx={{
           display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          padding: '15px 20px',
-        }}
-      ></Container>
-
-      <Divider />
-
-      <Container
-        sx={{
-          display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
           alignItems: 'center',
-          height: 'calc(100vh - 69px)',
+          height: '100vh',
+          position: 'relative',
+          backgroundColor: '#f0f4f9',
+          padding: '0 8px',
+          overflow: 'hidden',
         }}
       >
-        <div>
+        <div style={{ width: '100%', flex: 1, overflow: 'hidden' }}>
           {!authState?.authorized ? (
             <Box
               sx={{
@@ -452,17 +488,17 @@ const Sidebar = () => {
                 sx={{
                   maxWidth: '344px',
                   fontFamily: 'Recursive',
-                  fontSize: '20px',
+                  fontSize: '24px',
                   marginTop: '12px',
-                  fontWeight: 420,
+                  fontWeight: 600,
                   color: '#1E1A2E',
                   marginBottom: '14px',
-                  lineHeight: '28px',
+                  lineHeight: '36px',
                   letterSpacing: 'normal',
                 }}
               >
-                Welcome to <br />
-                the Mermaid
+                Welcome to the  <br />
+                official Mermaid Plugin
               </Typography>
 
               <Typography
@@ -475,7 +511,7 @@ const Sidebar = () => {
                   marginBottom: '28px',
                 }}
               >
-                Create and edit diagrams in Mermaid Chart and easily synchronize
+                Create and edit diagrams in Mermaid and easily synchronize
                 documents with Google Docs.
               </Typography>
 
@@ -497,125 +533,187 @@ const Sidebar = () => {
                   },
                 }}
               >
-                Login
-              </MuiButton>
-
-              <Typography
-                sx={{
-                  fontFamily: 'Recursive',
-                  marginTop: '22px',
-                  fontSize: '14px',
-                  color: '#343434',
-                }}
-              >
-                Don’t have an account?
-              </Typography>
-
-              <MuiButton
-                onClick={() =>
-                  window.open(
-                    'https://mermaidchart.com/app/sign-up',
-                    '_blank'
-                  )
-                }
-                sx={{
-                  textTransform: 'none',
-                  color: '#0071e3',
-                  padding: 0,
-                  minWidth: 'auto',
-                  fontSize: '14px',
-                  marginTop: '4px',
-                  fontFamily:
-                    'Recursive, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                  '&:hover': {
-                    textDecoration: 'underline',
-                    background: 'none',
-                  },
-                }}
-              >
-                Sign up
+                Sign in
               </MuiButton>
             </Box>
           ) : (
             <>
-              <Typography
-                title="h3"
-                color={'#1E1A2E'}
-                mb={1}
-                sx={{
-                  fontFamily:
-                    'Recursive, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                }}
-              >
-                Create a new diagram
-              </Typography>
               <Button
-                style={{ marginBottom: '16px' }}
+                variant="primary"
+                style={{ marginTop: '0px', marginBottom: '12px' }}
                 onClick={handleCreateDiagram}
                 loading={createDiagramState === 'loading'}
                 disabled={isProcessingInsertion}
+                icon={<AccountTreeIcon />}
               >
                 New diagram
               </Button>
-              <Typography title="h3" color={'#1E1A2E'} mb={1}>
-                Insert a diagram from Mermaid Chart
-              </Typography>
               <Button
-                style={{ marginBottom: '16px' }}
+                variant="primary"
+                style={{ marginBottom: '12px' }}
                 onClick={handleSelectDiagram}
                 loading={selectDiagramState === 'loading'}
                 disabled={isProcessingInsertion}
+                icon={<FolderOpenIcon />}
               >
                 Browse diagrams
               </Button>
-              <Typography title="h3" color={'#1E1A2E'} mb={1}>
-                Update all diagrams in document to most recent version
-              </Typography>
               <Button
+                variant="primary"
+                style={{ marginBottom: '12px' }}
                 onClick={handleDiagramsUpdate}
                 loading={updateDiagramsState === 'loading'}
                 disabled={isProcessingInsertion}
+                icon={<CachedIcon />}
               >
                 Update all diagrams
               </Button>
-              <Box sx={{ width: '100%' }} mt={2}>
-                <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-                  <Tabs
-                    value={tab}
-                    onChange={(_, newValue) => handleTabSwitch(newValue)}
+              <Box sx={{ width: '100%' }} mt={4}>
+                <Box sx={{
+                  height: '42px',
+                  padding: '3px',
+                  borderRadius: '8px',
+                  background: '#F1F8FA',
+                  opacity: 1,
+                  margin: '0 auto 20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0px',
+                }}>
+                  <Box
+                    onClick={() => handleTabSwitch(0)}
+                    sx={{
+                      flex: '0 0 auto',
+                      padding: '8px 32px',
+                      cursor: 'pointer',
+                      fontSize: '13px',
+                      fontWeight: tab === 0 ? 600 : 400,
+                      backgroundColor: tab === 0 ? '#FFFFFF' : 'transparent',
+                      color: tab === 0 ? '#1E1A2E' : '#666',
+                      borderRadius: '6px',
+                      transition: 'all 0.2s ease',
+                      fontFamily: 'Recursive',
+                      lineHeight: '20px',
+                      textAlign: 'center',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      boxShadow: tab === 0 ? '0 2px 4px rgba(0,0,0,0.1)' : 'none',
+                      '&:hover': {
+                        backgroundColor: tab === 0 ? '#FFFFFF' : 'rgba(255,255,255,0.5)',
+                        color: '#1E1A2E'
+                      }
+                    }}
                   >
-                    <Tab
-                      label="Recent diagrams"
-                      sx={{ textTransform: 'initial' }}
-                    />
-                    <Tab
-                      label="In this document"
-                      sx={{ textTransform: 'initial' }}
-                    />
-                  </Tabs>
+                    Recent
+                  </Box>
+                  <Box
+                    onClick={() => handleTabSwitch(1)}
+                    sx={{
+                      flex: '1 1 auto',
+                      padding: '8px 8px',
+                      cursor: 'pointer',
+                      fontSize: '13px',
+                      fontWeight: tab === 1 ? 600 : 400,
+                      backgroundColor: tab === 1 ? '#FFFFFF' : 'transparent',
+                      color: tab === 1 ? '#1E1A2E' : '#666',
+                      borderRadius: '6px',
+                      transition: 'all 0.2s ease',
+                      fontFamily: 'Recursive',
+                      lineHeight: '20px',
+                      textAlign: 'center',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      boxShadow: tab === 1 ? '0 2px 4px rgba(0,0,0,0.1)' : 'none',
+                      '&:hover': {
+                        backgroundColor: tab === 1 ? '#FFFFFF' : 'rgba(255,255,255,0.5)',
+                        color: '#1E1A2E'
+                      }
+                    }}
+                  >
+                    In this Document
+                  </Box>
                 </Box>
+
+                {tab === 0 && iframeLoading && (
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      height: 'calc(100vh - 300px)',
+                      backgroundColor: 'transparent',
+                      gap: '16px',
+                    }}
+                  >
+                    <CircularProgress
+                      size={48}
+                      sx={{
+                        color: '#1E1A2E',
+                      }}
+                    />
+                    <Typography
+                      sx={{
+                        fontFamily: 'Recursive',
+                        fontWeight: 500,
+                        fontSize: '16px',
+                        lineHeight: '24px',
+                        color: '#5F5D7A',
+                        textAlign: 'center',
+                        margin: 0,
+                      }}
+                    >
+                      Loading recent diagrams...
+                    </Typography>
+                  </Box>
+                )}
                 <iframe
+                  key={tabRefreshCount}
                   src={diagramsUrl}
                   title="diagrams"
+                  onLoad={() => setIframeLoading(false)}
                   style={{
                     border: 'none',
-                    marginTop: '20px',
-                    width: '260px',
-                    height: 'calc(100vh - 440px)',
-                    display: tab === 0 ? 'block' : 'none',
+                    width: '100%',
+                    height: 'calc(100vh - 300px)',
+                    backgroundColor: '#ffffff',
+                    display: tab === 0 && !iframeLoading ? 'block' : 'none',
+                    borderRadius: '16px',
                   }}
                 />
 
                 <Container
                   sx={{
-                    display: tab === 1 ? 'grid' : 'none',
+                    display: tab === 1 ? 'flex' : 'none',
                     flexDirection: 'column',
                     alignItems: 'center',
+                    justifyContent: chartImages.length === 0 && chartImagesState === 'success' ? 'center' : 'flex-start',
+                    backgroundColor: '#f8fafb',
                     gap: '20px',
-                    marginTop: '20px',
-                    height: 'calc(100vh - 440px)',
+                    padding: '16px 8px 80px 8px',
+                    height: 'calc(100vh - 220px)',
                     overflowY: 'auto',
-                    padding: 0,
+                    overflowX: 'hidden',
+                    borderRadius: '12px',
+                    border: '1px solid #e5e7eb',
+                    margin: '0',
+                    maxWidth: 'none',
+                    '&::-webkit-scrollbar': {
+                      width: '6px',
+                    },
+                    '&::-webkit-scrollbar-track': {
+                      backgroundColor: 'transparent',
+                    },
+                    '&::-webkit-scrollbar-thumb': {
+                      backgroundColor: 'rgba(0, 0, 0, 0.2)',
+                      borderRadius: '3px',
+                      '&:hover': {
+                        backgroundColor: 'rgba(0, 0, 0, 0.3)',
+                      },
+                    },
+                    scrollbarWidth: 'thin',
+                    scrollbarColor: 'rgba(0, 0, 0, 0.2) transparent', /* Firefox */
                   }}
                 >
                   {chartImagesState === 'loading' &&
@@ -623,98 +721,305 @@ const Sidebar = () => {
                       <Box
                         sx={{
                           display: 'flex',
+                          flexDirection: 'column',
                           justifyContent: 'center',
                           alignItems: 'center',
-                          height: '100px',
+                          height: '300px',
+                          backgroundColor: 'transparent',
+                          gap: '16px',
                         }}
                       >
-                        <CircularProgress size={40} />
+                        <CircularProgress
+                          size={48}
+                          sx={{
+                            color: '#1E1A2E',
+                          }}
+                        />
+                        <Typography
+                          sx={{
+                            fontFamily: 'Recursive',
+                            fontWeight: 500,
+                            fontSize: '16px',
+                            lineHeight: '24px',
+                            color: '#5F5D7A',
+                            textAlign: 'center',
+                            margin: 0,
+                          }}
+                        >
+                          Loading diagrams...
+                        </Typography>
+                        <Typography
+                          sx={{
+                            fontFamily: 'Recursive',
+                            fontWeight: 400,
+                            fontSize: '14px',
+                            lineHeight: '20px',
+                            color: '#8B8FA3',
+                            textAlign: 'center',
+                            margin: 0,
+                            maxWidth: '200px',
+                          }}
+                        >
+                          Checking for diagrams in this document
+                        </Typography>
                       </Box>
                     )}
 
                   {chartImages.length > 0 &&
-                    chartImages.map((image) => (
+                    chartImages.map((image) => {
+                      const isLoading = editingDiagram === image.altDescription || removingDiagram === image.altDescription;
+                      return (
+                        <Box
+                          sx={{
+                            width: '100%',
+                            height: '100%',
+                            display: 'flex',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          <Box
+                            key={image.altDescription}
+                            sx={{
+                              width: '100%',
+                              maxWidth: '298px',
+                              height: '328px',
+                              borderRadius: '16px',
+                              border: '2px solid #DCEEF1',
+                              backgroundColor: '#ffffff',
+                              overflow: 'hidden',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              margin: '0 auto',
+                              transition: 'all 0.2s ease',
+                              position: 'relative',
+                              opacity: isLoading ? 0.6 : 1,
+                              '& .button-area': {
+                                opacity: 0,
+                                transition: 'opacity 0.2s ease, background-color 0.2s ease',
+                              },
+                              '&:hover': {
+                                border: isLoading ? '2px solid #DCEEF1' : '2px solid #BEDDE3',
+                                '& .button-area': {
+                                  opacity: isLoading ? 0 : 1,
+                                }
+                              }
+                            }}
+                          >
+                            {/* Loading Overlay */}
+                            {isLoading && (
+                              <Box
+                                sx={{
+                                  position: 'absolute',
+                                  top: 0,
+                                  left: 0,
+                                  width: '100%',
+                                  height: '100%',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                                  zIndex: 10,
+                                  borderRadius: '16px',
+                                }}
+                              >
+                                <CircularProgress
+                                  size={32}
+                                  sx={{
+                                    color: '#1E1A2E',
+                                  }}
+                                />
+                              </Box>
+                            )}
+                            <Box
+                              sx={{
+                                width: '100%',
+                                height: '280px',
+                                minHeight: 0,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                padding: '16px',
+                                boxSizing: 'border-box',
+                                cursor: 'pointer',
+                              }}
+                              onClick={() =>
+                                handleSelectedImage(image.altDescription)
+                              }
+                            >
+                              <img
+                                src={image.image}
+                                alt={image.altDescription}
+                                style={{
+                                  maxWidth: '100%',
+                                  maxHeight: '100%',
+                                  objectFit: 'contain',
+                                }}
+                              />
+                            </Box>
+
+                            <Box
+                              className="button-area"
+                              sx={{
+                                width: '100%',
+                                height: '48px',
+                                padding: '8px 16px',
+                                boxSizing: 'border-box',
+                                display: 'flex',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                transition: 'opacity 0.2s ease',
+                                flexShrink: 0,
+                              }}
+                            >
+                              <Box sx={{ width: '138px', height: '32px', display: 'flex', gap: '8px' }}>
+                                <Button
+                                  style={{
+                                    width: '52px',
+                                    height: '32px',
+                                    padding: '3px 12px',
+                                    borderRadius: '8px',
+                                    backgroundColor: '#1E1A2E',
+                                    color: '#FFFFFF',
+                                    fontFamily: 'Recursive',
+                                    fontWeight: '600',
+                                    fontSize: '14px',
+                                    lineHeight: '24px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                  }}
+                                  onClick={() =>
+                                    handleEditDiagram(image.altDescription)
+                                  }
+                                  disabled={editingDiagram !== null || removingDiagram !== null || isProcessingInsertion}
+                                >
+                                  Edit
+                                </Button>
+
+                                <Button
+                                  style={{
+                                    width: '78px',
+                                    height: '32px',
+                                    padding: '3px 12px',
+                                    borderRadius: '8px',
+                                    backgroundColor: '#FF5449',
+                                    color: '#FFFFFF',
+                                    fontFamily: 'Recursive',
+                                    fontWeight: '600',
+                                    fontSize: '14px',
+                                    lineHeight: '24px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                  }}
+                                  onClick={() =>
+                                    handleRemoveDiagram(image.altDescription)
+                                  }
+                                  disabled={editingDiagram !== null || removingDiagram !== null || isProcessingInsertion}
+                                >
+                                  Remove
+                                </Button>
+                              </Box>
+                            </Box>
+
+                          </Box>
+                        </Box>
+                      );
+                    })}
+
+                  {chartImagesState === 'success' &&
+                    chartImages.length === 0 && (
                       <Box
-                        key={image.altDescription}
                         sx={{
                           display: 'flex',
                           flexDirection: 'column',
                           alignItems: 'center',
-                          gap: '8px',
-                          padding: '10px',
-                          border: '1px solid #e0e0e0',
-                          borderRadius: '8px',
-                          backgroundColor: '#fafafa',
-                          width: '100%',
+                          justifyContent: 'center',
+                          textAlign: 'center',
+                          gap: '12px',
+                          padding: '20px',
                         }}
                       >
-                        <img
-                          src={image.image}
-                          alt={image.altDescription}
-                          style={{
-                            width: '100%',
-                            borderRadius: '4px',
-                            cursor: 'pointer',
+                        <Typography
+                          sx={{
+                            fontFamily: 'Recursive',
+                            fontWeight: 600,
+                            fontSize: '16px',
+                            lineHeight: '24px',
+                            color: '#2B2542',
+                            margin: 0,
+                            whiteSpace: 'nowrap',
                           }}
-                          onClick={() =>
-                            handleSelectedImage(image.altDescription)
-                          }
-                        />
+                        >
+                          No diagrams in document
+                        </Typography>
 
-                        <Box sx={{ display: 'flex', gap: '8px' }}>
-                          <Button
-                            style={{
-                              fontSize: '12px',
-                              padding: '4px 12px',
-                            }}
-                            onClick={() =>
-                              handleEditDiagram(image.altDescription)
-                            }
+                        <Typography
+                          sx={{
+                            maxWidth: '250px',
+                            fontFamily: 'Recursive',
+                            fontWeight: 400,
+                            fontSize: '14px',
+                            lineHeight: '20px',
+                            textAlign: 'center',
+                            color: '#5F5D7A',
+                            margin: 0,
+                            '& .clickable': {
+                              textDecoration: 'underline',
+                              cursor: 'pointer',
+                              '&:hover': {
+                                opacity: 0.8,
+                              },
+                            },
+                          }}
+                        >
+                          <span
+                            className="clickable"
+                            onClick={handleSelectDiagram}
                           >
-                            Edit
-                          </Button>
-
-                          <Button
-                            style={{
-                              fontSize: '12px',
-                              padding: '4px 12px',
-                              backgroundColor: '#d32f2f',
-                              color: 'white',
-                            }}
-                            onClick={() =>
-                              handleRemoveDiagram(image.altDescription)
-                            }
+                            Insert
+                          </span>
+                          {' or '}
+                          <span
+                            className="clickable"
+                            onClick={handleCreateDiagram}
                           >
-                            Remove
-                          </Button>
-                        </Box>
+                            create
+                          </span>
+                          {' diagrams to see them here'}
+                        </Typography>
                       </Box>
-                    ))}
-
-                  {chartImagesState === 'success' &&
-                    chartImages.length === 0 && (
-                      <Typography
-                        title="h4"
-                        textAlign="center"
-                        sx={{
-                          fontFamily:
-                            'Recursive, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                        }}
-                      >
-                        No diagrams found in this document
-                      </Typography>
                     )}
                 </Container>
               </Box>
-
-              {authState?.authorized && (
-                <Box sx={{ marginTop: '20px', textAlign: 'left' }}>
-                  <Button onClick={signOut}>Logout</Button>
-                </Box>
-              )}
             </>
           )}
         </div>
+
+        {/* Sticky Logout Button */}
+        {authState?.authorized && (
+          <Box
+            sx={{
+              position: 'sticky',
+              bottom: 0,
+              width: '100%',
+              backgroundColor: '#f0f4f9',
+              borderTop: '1px solid #f0f0f0',
+              zIndex: 10
+            }}
+          >
+            <Button
+              onClick={handleLogout}
+              variant="logout"
+              icon={<LogoutIcon />}
+              loading={logoutLoading}
+              disabled={logoutLoading}
+            >
+              Logout
+            </Button>
+          </Box>
+        )}
+
         {!authState?.authorized && (
           <Container
             sx={{
@@ -729,17 +1034,11 @@ const Sidebar = () => {
               sx={{
                 fontFamily:
                   'Recursive, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                fontSize: '14px',
+                fontSize: '13px',
+                color: '#5F5D7A',
               }}
             >
-              <a
-                href="https://mermaidchart.com"
-                target="_blank"
-                rel="noreferrer"
-                style={{ color: '#1E1A2E' }}
-              >
-                Copyright © 2025 Mermaid Chart
-              </a>
+              Brought to you by the Mermaid team.
             </Typography>
           </Container>
         )}
@@ -750,7 +1049,7 @@ const Sidebar = () => {
         severity={toastSeverity}
         onClose={handleToastClose}
       />
-    </>
+    </div>
   );
 };
 

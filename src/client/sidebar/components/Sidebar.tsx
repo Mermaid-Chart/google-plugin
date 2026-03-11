@@ -25,6 +25,8 @@ interface ChartImage {
 
 const Sidebar = () => {
   const [tab, setTab] = useState(0);
+  const [tabRefreshCount, setTabRefreshCount] = useState(0);
+  const [iframeLoading, setIframeLoading] = useState(true);
   const [overlayEnabled, setOverlayEnabled] = useState(false);
   const intervalRef = useRef<number | null>(null);
   const [diagramsUrl, setDiagramsUrl] = useState<string>('');
@@ -52,6 +54,7 @@ const Sidebar = () => {
       authState.token
     );
     setDiagramsUrl(url);
+    setIframeLoading(true);
     if (intervalRef.current !== null) {
       clearInterval(intervalRef?.current);
       intervalRef.current = null;
@@ -259,6 +262,10 @@ const Sidebar = () => {
   };
 
   const handleTabSwitch = (tabIndex: number) => {
+    if (tabIndex === 0 && tab !== 0) {
+      setTabRefreshCount((prev) => prev + 1);
+      setIframeLoading(true);
+    }
     setTab(tabIndex);
     if (chartImagesState !== 'loading') {
       getImages();
@@ -628,15 +635,50 @@ const Sidebar = () => {
                   </Box>
                 </Box>
 
+                {tab === 0 && iframeLoading && (
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      height: 'calc(100vh - 300px)',
+                      backgroundColor: 'transparent',
+                      gap: '16px',
+                    }}
+                  >
+                    <CircularProgress
+                      size={48}
+                      sx={{
+                        color: '#1E1A2E',
+                      }}
+                    />
+                    <Typography
+                      sx={{
+                        fontFamily: 'Recursive',
+                        fontWeight: 500,
+                        fontSize: '16px',
+                        lineHeight: '24px',
+                        color: '#5F5D7A',
+                        textAlign: 'center',
+                        margin: 0,
+                      }}
+                    >
+                      Loading recent diagrams...
+                    </Typography>
+                  </Box>
+                )}
                 <iframe
+                  key={tabRefreshCount}
                   src={diagramsUrl}
                   title="diagrams"
+                  onLoad={() => setIframeLoading(false)}
                   style={{
                     border: 'none',
                     width: '100%',
                     height: 'calc(100vh - 300px)',
                     backgroundColor: '#ffffff',
-                    display: tab === 0 ? 'block' : 'none',
+                    display: tab === 0 && !iframeLoading ? 'block' : 'none',
                     borderRadius: '16px',
                   }}
                 />
@@ -797,6 +839,7 @@ const Sidebar = () => {
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 padding: '16px',
+                                boxSizing: 'border-box',
                                 cursor: 'pointer',
                               }}
                               onClick={() =>
@@ -820,6 +863,7 @@ const Sidebar = () => {
                                 width: '100%',
                                 height: '48px',
                                 padding: '8px 16px',
+                                boxSizing: 'border-box',
                                 display: 'flex',
                                 justifyContent: 'center',
                                 alignItems: 'center',

@@ -17,7 +17,7 @@ const CreateDiagramDialog = () => {
   useEffect(() => {
     if (!authState?.authorized) return;
     const url = buildUrl(
-      '/app/diagrams/new?pluginSource=googledocs&shouldShowPopup=true',
+      '/app/diagrams/new?pluginSource=googledocs',
       authState.token
     );
     setDiagramsUrl(url);

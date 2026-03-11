@@ -8,7 +8,7 @@ interface ButtonProps {
   disabled?: boolean;
   style?: React.CSSProperties;
   loading?: boolean;
-  variant?: 'primary' | 'secondary';
+  variant?: 'primary' | 'secondary' | 'logout';
   icon?: React.ReactNode;
 }
 
@@ -22,9 +22,15 @@ const Button: FunctionComponent<ButtonProps> = ({
   icon,
   ...rest
 }) => {
+  const getButtonClassName = () => {
+    if (variant === 'primary') return styles.buttonPrimary;
+    if (variant === 'logout') return styles.buttonLogout;
+    return styles.button;
+  };
+
   return (
     <button
-      className={`${variant === 'primary' ? styles.buttonPrimary : styles.button} ${loading ? styles.buttonLoading : ''} `}
+      className={`${getButtonClassName()} ${loading ? styles.buttonLoading : ''} `}
       style={style}
       onClick={onClick}
       disabled={disabled}

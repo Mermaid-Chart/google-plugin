@@ -14,9 +14,12 @@ import Button from '../../components/button';
 import { showAlertDialog } from '../../utils/alert';
 import analytics from '../../../analytics/analytics';
 import Toast from '../../components/toast';
-import { AccountTreeIcon, FolderOpenIcon, CachedIcon, LogoutIcon } from '../../assets/icons';
-
-
+import {
+  AccountTreeIcon,
+  FolderOpenIcon,
+  CachedIcon,
+  LogoutIcon,
+} from '../../assets/icons';
 
 interface ChartImage {
   altDescription: string;
@@ -331,7 +334,13 @@ const Sidebar = () => {
   }
 
   return (
-    <div style={{ backgroundColor: '#f0f4f9', height: '100vh', overflow: 'hidden' }}>
+    <div
+      style={{
+        backgroundColor: '#f0f4f9',
+        height: '100vh',
+        overflow: 'hidden',
+      }}
+    >
       {(overlayEnabled || isProcessingInsertion) && (
         <Box
           sx={{
@@ -410,7 +419,7 @@ const Sidebar = () => {
                   letterSpacing: 'normal',
                 }}
               >
-                Welcome to the  <br />
+                Welcome to the <br />
                 official Mermaid Plugin
               </Typography>
 
@@ -482,18 +491,20 @@ const Sidebar = () => {
                 Update all diagrams
               </Button>
               <Box sx={{ width: '100%' }} mt={4}>
-                <Box sx={{
-                  height: '42px',
-                  padding: '3px',
-                  borderRadius: '8px',
-                  background: '#F1F8FA',
-                  opacity: 1,
-                  margin: '0 auto 20px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0px',
-                }}>
+                <Box
+                  sx={{
+                    height: '42px',
+                    padding: '3px',
+                    borderRadius: '8px',
+                    background: '#F1F8FA',
+                    opacity: 1,
+                    margin: '0 auto 20px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0px',
+                  }}
+                >
                   <Box
                     onClick={() => handleTabSwitch(0)}
                     sx={{
@@ -511,11 +522,13 @@ const Sidebar = () => {
                       textAlign: 'center',
                       whiteSpace: 'nowrap',
                       overflow: 'hidden',
-                      boxShadow: tab === 0 ? '0 2px 4px rgba(0,0,0,0.1)' : 'none',
+                      boxShadow:
+                        tab === 0 ? '0 2px 4px rgba(0,0,0,0.1)' : 'none',
                       '&:hover': {
-                        backgroundColor: tab === 0 ? '#FFFFFF' : 'rgba(255,255,255,0.5)',
-                        color: '#1E1A2E'
-                      }
+                        backgroundColor:
+                          tab === 0 ? '#FFFFFF' : 'rgba(255,255,255,0.5)',
+                        color: '#1E1A2E',
+                      },
                     }}
                   >
                     Recent
@@ -537,11 +550,13 @@ const Sidebar = () => {
                       textAlign: 'center',
                       whiteSpace: 'nowrap',
                       overflow: 'hidden',
-                      boxShadow: tab === 1 ? '0 2px 4px rgba(0,0,0,0.1)' : 'none',
+                      boxShadow:
+                        tab === 1 ? '0 2px 4px rgba(0,0,0,0.1)' : 'none',
                       '&:hover': {
-                        backgroundColor: tab === 1 ? '#FFFFFF' : 'rgba(255,255,255,0.5)',
-                        color: '#1E1A2E'
-                      }
+                        backgroundColor:
+                          tab === 1 ? '#FFFFFF' : 'rgba(255,255,255,0.5)',
+                        color: '#1E1A2E',
+                      },
                     }}
                   >
                     In this Document
@@ -601,7 +616,10 @@ const Sidebar = () => {
                     display: tab === 1 ? 'flex' : 'none',
                     flexDirection: 'column',
                     alignItems: 'center',
-                    justifyContent: chartImages.length === 0 && chartImagesState === 'success' ? 'center' : 'flex-start',
+                    justifyContent:
+                      chartImages.length === 0 && chartImagesState === 'success'
+                        ? 'center'
+                        : 'flex-start',
                     backgroundColor: '#f8fafb',
                     gap: '20px',
                     padding: '16px 8px 80px 8px',
@@ -626,7 +644,8 @@ const Sidebar = () => {
                       },
                     },
                     scrollbarWidth: 'thin',
-                    scrollbarColor: 'rgba(0, 0, 0, 0.2) transparent', /* Firefox */
+                    scrollbarColor:
+                      'rgba(0, 0, 0, 0.2) transparent' /* Firefox */,
                   }}
                 >
                   {chartImagesState === 'loading' &&
@@ -680,7 +699,9 @@ const Sidebar = () => {
 
                   {chartImages.length > 0 &&
                     chartImages.map((image) => {
-                      const isLoading = editingDiagram === image.altDescription || removingDiagram === image.altDescription;
+                      const isLoading =
+                        editingDiagram === image.altDescription ||
+                        removingDiagram === image.altDescription;
                       return (
                         <Box
                           sx={{
@@ -708,14 +729,17 @@ const Sidebar = () => {
                               opacity: isLoading ? 0.6 : 1,
                               '& .button-area': {
                                 opacity: 0,
-                                transition: 'opacity 0.2s ease, background-color 0.2s ease',
+                                transition:
+                                  'opacity 0.2s ease, background-color 0.2s ease',
                               },
                               '&:hover': {
-                                border: isLoading ? '2px solid #DCEEF1' : '2px solid #BEDDE3',
+                                border: isLoading
+                                  ? '2px solid #DCEEF1'
+                                  : '2px solid #BEDDE3',
                                 '& .button-area': {
                                   opacity: isLoading ? 0 : 1,
-                                }
-                              }
+                                },
+                              },
                             }}
                           >
                             {/* Loading Overlay */}
@@ -784,7 +808,14 @@ const Sidebar = () => {
                                 flexShrink: 0,
                               }}
                             >
-                              <Box sx={{ width: '138px', height: '32px', display: 'flex', gap: '8px' }}>
+                              <Box
+                                sx={{
+                                  width: '138px',
+                                  height: '32px',
+                                  display: 'flex',
+                                  gap: '8px',
+                                }}
+                              >
                                 <Button
                                   style={{
                                     width: '52px',
@@ -804,7 +835,11 @@ const Sidebar = () => {
                                   onClick={() =>
                                     handleEditDiagram(image.altDescription)
                                   }
-                                  disabled={editingDiagram !== null || removingDiagram !== null || isProcessingInsertion}
+                                  disabled={
+                                    editingDiagram !== null ||
+                                    removingDiagram !== null ||
+                                    isProcessingInsertion
+                                  }
                                 >
                                   Edit
                                 </Button>
@@ -828,13 +863,16 @@ const Sidebar = () => {
                                   onClick={() =>
                                     handleRemoveDiagram(image.altDescription)
                                   }
-                                  disabled={editingDiagram !== null || removingDiagram !== null || isProcessingInsertion}
+                                  disabled={
+                                    editingDiagram !== null ||
+                                    removingDiagram !== null ||
+                                    isProcessingInsertion
+                                  }
                                 >
                                   Remove
                                 </Button>
                               </Box>
                             </Box>
-
                           </Box>
                         </Box>
                       );
@@ -918,7 +956,7 @@ const Sidebar = () => {
               width: '100%',
               backgroundColor: '#f0f4f9',
               borderTop: '1px solid #f0f0f0',
-              zIndex: 10
+              zIndex: 10,
             }}
           >
             <Button

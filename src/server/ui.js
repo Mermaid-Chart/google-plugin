@@ -1,10 +1,10 @@
 function buildMenu() {
   const menu = DocumentApp.getUi().createAddonMenu();
-  
+
   menu.addItem('Start', 'openSidebar');
-  
+
   let authorized = false;
-  
+
   try {
     const authState = getAuthorizationState();
     authorized = authState && authState.authorized;
@@ -12,21 +12,21 @@ function buildMenu() {
     console.log('Error checking authorization state: ' + e);
     Logger.log('Auth check failed: ' + e);
   }
-  
+
   if (authorized) {
     menu.addSeparator();
     menu.addItem('New diagram', 'openCreateDiagramDialog');
     menu.addItem('Browse diagrams', 'openSelectDiagramDialog');
     menu.addItem('Edit selected diagram', 'openEditDiagramDialog');
   }
-  
+
   menu.addSeparator();
   menu.addItem('About', 'openAboutDialog');
-  
+
   menu.addToUi();
 }
 
-export function onOpen(e) {
+export function onOpen() {
   buildMenu();
 }
 
@@ -324,17 +324,17 @@ export function insertBase64ImageWithMetadata(
         const firstElement = selectedElements[0];
         let startOffset = firstElement.getStartOffset();
         const elementToUse = firstElement.getElement();
-        
+
         // Ensure offset is not negative
         if (startOffset < 0) {
           startOffset = 0;
         }
-        
+
         // Insert image based on element type
         if (elementToUse.getType() === DocumentApp.ElementType.TEXT) {
           const textElement = elementToUse.asText();
           const parentElement = textElement.getParent();
-          
+
           if (parentElement.getType() === DocumentApp.ElementType.PARAGRAPH) {
             const paragraph = parentElement.asParagraph();
             // Find the position of the text element within the paragraph
@@ -342,16 +342,24 @@ export function insertBase64ImageWithMetadata(
             if (textIndex >= 0 && startOffset < textElement.getText().length) {
               element = paragraph.insertInlineImage(textIndex, blob);
             } else {
-              element = paragraph.insertInlineImage(paragraph.getNumChildren(), blob);
+              element = paragraph.insertInlineImage(
+                paragraph.getNumChildren(),
+                blob
+              );
             }
-          } else if (parentElement.getType() === DocumentApp.ElementType.LIST_ITEM) {
+          } else if (
+            parentElement.getType() === DocumentApp.ElementType.LIST_ITEM
+          ) {
             const listItem = parentElement.asListItem();
             // Find the position of the text element within the list item
             const textIndex = listItem.getChildIndex(textElement);
             if (textIndex >= 0 && startOffset < textElement.getText().length) {
               element = listItem.insertInlineImage(textIndex, blob);
             } else {
-              element = listItem.insertInlineImage(listItem.getNumChildren(), blob);
+              element = listItem.insertInlineImage(
+                listItem.getNumChildren(),
+                blob
+              );
             }
           } else {
             // Fallback - insert at end of document
@@ -359,13 +367,17 @@ export function insertBase64ImageWithMetadata(
             const paragraph = body.appendParagraph('');
             element = paragraph.insertInlineImage(0, blob);
           }
-        } else if (elementToUse.getType() === DocumentApp.ElementType.PARAGRAPH) {
+        } else if (
+          elementToUse.getType() === DocumentApp.ElementType.PARAGRAPH
+        ) {
           const paragraph = elementToUse.asParagraph();
           // Ensure we don't exceed the number of children
           const maxIndex = paragraph.getNumChildren();
           const insertIndex = Math.min(Math.max(startOffset, 0), maxIndex);
           element = paragraph.insertInlineImage(insertIndex, blob);
-        } else if (elementToUse.getType() === DocumentApp.ElementType.LIST_ITEM) {
+        } else if (
+          elementToUse.getType() === DocumentApp.ElementType.LIST_ITEM
+        ) {
           const listItem = elementToUse.asListItem();
           // Ensure we don't exceed the number of children
           const maxIndex = listItem.getNumChildren();
@@ -378,7 +390,9 @@ export function insertBase64ImageWithMetadata(
           element = paragraph.insertInlineImage(0, blob);
         }
       } else {
-        throw new Error('Cannot find a valid location to insert the image. Please place your cursor where you want to insert the diagram.');
+        throw new Error(
+          'Cannot find a valid location to insert the image. Please place your cursor where you want to insert the diagram.'
+        );
       }
     } else {
       // No cursor and no selection - insert at the end of the document
@@ -693,7 +707,10 @@ export function processPendingInsertion() {
   } catch (error) {
     // Clear the pending insertion even on error to prevent infinite retries
     clearPendingInsertion();
-    return { success: false, message: 'Error inserting diagram: ' + error.message };
+    return {
+      success: false,
+      message: 'Error inserting diagram: ' + error.message,
+    };
   }
 }
 
@@ -727,7 +744,7 @@ export function sendAnalyticsEvent(payload) {
     }
 
     const analyticsUrl = `${baseURL}/rest-api/plugins/pulse`;
-    
+
     const response = UrlFetchApp.fetch(analyticsUrl, {
       method: 'POST',
       headers: {

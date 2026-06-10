@@ -29,7 +29,7 @@ const CreateDiagramDialog = () => {
     const handleMessage = async (e: MessageEvent) => {
       const action = e.data.action;
       const type = e.data.type;
-      
+
       if (action === 'save') {
         const data = e.data.data;
         const metadata = new URLSearchParams({
@@ -44,7 +44,10 @@ const CreateDiagramDialog = () => {
           const compressedImage = await compressBase64Image(data.diagramImage);
 
           // Insert directly from this dialog — works whether sidebar is open or closed
-          await serverFunctions.insertBase64ImageWithMetadata(compressedImage, metadata.toString());
+          await serverFunctions.insertBase64ImageWithMetadata(
+            compressedImage,
+            metadata.toString()
+          );
 
           // Notify sidebar to refresh its image list if it happens to be open
           const channel = new BroadcastChannel('diagram_channel');
@@ -56,7 +59,10 @@ const CreateDiagramDialog = () => {
           setIsInserting(false);
           showAlertDialog('Error preparing diagram, please try again');
         }
-      } else if (type === 'mermaid-chart-google-docs-back' && action === 'navigateBack') {
+      } else if (
+        type === 'mermaid-chart-google-docs-back' &&
+        action === 'navigateBack'
+      ) {
         handleDialogClose();
       }
     };
@@ -160,7 +166,9 @@ const CreateDiagramDialog = () => {
           }}
         >
           <CircularProgress size={40} />
-          <Typography variant="body2" sx={{ mt: 2 }}>Inserting diagram...</Typography>
+          <Typography variant="body2" sx={{ mt: 2 }}>
+            Inserting diagram...
+          </Typography>
         </Box>
       )}
       <div style={{ padding: '3px', overflowX: 'hidden', height: '100%' }}>

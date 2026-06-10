@@ -47,7 +47,7 @@ const EditDiagramDialog = () => {
     const handleMessage = async (e: MessageEvent) => {
       const action = e.data.action;
       const type = e.data.type;
-      
+
       console.log('action', action);
       if (action === 'save') {
         const data = e.data.data;
@@ -62,7 +62,10 @@ const EditDiagramDialog = () => {
           const compressedImage = await compressBase64Image(data.diagramImage);
 
           // Replace directly from this dialog — works whether sidebar is open or closed
-          await serverFunctions.replaceSelectedImageWithBase64AndSize(compressedImage, metadata.toString());
+          await serverFunctions.replaceSelectedImageWithBase64AndSize(
+            compressedImage,
+            metadata.toString()
+          );
 
           // Notify sidebar to refresh its image list if it happens to be open
           const channel = new BroadcastChannel('diagram_channel');
@@ -74,7 +77,10 @@ const EditDiagramDialog = () => {
           setIsInserting(false);
           showAlertDialog('Error preparing diagram update, please try again');
         }
-      } else if (type === 'mermaid-chart-google-docs-back' && action === 'navigateBack') {
+      } else if (
+        type === 'mermaid-chart-google-docs-back' &&
+        action === 'navigateBack'
+      ) {
         handleDialogClose();
       }
     };
@@ -178,7 +184,9 @@ const EditDiagramDialog = () => {
           }}
         >
           <CircularProgress size={40} />
-          <Typography variant="body2" sx={{ mt: 2 }}>Inserting diagram...</Typography>
+          <Typography variant="body2" sx={{ mt: 2 }}>
+            Inserting diagram...
+          </Typography>
         </Box>
       )}
       <div style={{ padding: '3px', overflowX: 'hidden', height: '100%' }}>

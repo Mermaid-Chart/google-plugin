@@ -15,12 +15,20 @@ httpClient.interceptors.response.use(
   (response: AxiosResponse) => response,
   (error: AxiosError) => {
     if (error.code === 'ERR_NETWORK') {
-      console.warn('Analytics endpoint unreachable - continuing without tracking');
-      return Promise.resolve({ data: null, status: 200, statusText: 'OK', headers: {}, config: error.config });
+      console.warn(
+        'Analytics endpoint unreachable - continuing without tracking'
+      );
+      return Promise.resolve({
+        data: null,
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: error.config,
+      });
     }
     console.error('HTTP Client error:', error);
     return Promise.reject(error);
   }
 );
 
-export default httpClient; 
+export default httpClient;

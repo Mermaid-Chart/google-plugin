@@ -10,9 +10,9 @@
   outline: none;
   border-radius: 8px;
   border: none;
-  background-color: #BEDDE3;
+  background-color: #bedde3;
   cursor: pointer;
-  color: #1E1A2E;
+  color: #1e1a2e;
   display: flex;
   align-items: center;
   justify-content: flex-start;
@@ -20,8 +20,8 @@
 }
 
 .buttonPrimary:hover {
-  background-color: #A5D0D7;
-  color: #1E1A2E;
+  background-color: #a5d0d7;
+  color: #1e1a2e;
   transition: all 0.2s;
 }
 
@@ -35,14 +35,14 @@
   outline: none;
   border-radius: 0.375rem;
   border: none;
-  background-color: #E80962;
+  background-color: #e80962;
   cursor: pointer;
   color: white;
   vertical-align: middle;
 }
 
 .button:hover {
-  background-color: #B20E45;
+  background-color: #b20e45;
   color: white;
   transition: all 0.2s;
 }
@@ -87,15 +87,13 @@
 
 .buttonLogout:hover {
   background-color: rgba(68, 71, 70, 0.1);
-  color: #1E1A2E;
+  color: #1e1a2e;
   transition: all 0.2s ease;
 }
 
 .buttonLogout:active {
   background-color: rgba(68, 71, 70, 0.2);
-  color: #1E1A2E;
+  color: #1e1a2e;
   transform: translateY(1px);
   transition: all 0.1s ease;
 }
-
-

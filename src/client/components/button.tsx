@@ -30,7 +30,9 @@ const Button: FunctionComponent<ButtonProps> = ({
 
   return (
     <button
-      className={`${getButtonClassName()} ${loading ? styles.buttonLoading : ''} `}
+      className={`${getButtonClassName()} ${
+        loading ? styles.buttonLoading : ''
+      } `}
       style={style}
       onClick={onClick}
       disabled={disabled}

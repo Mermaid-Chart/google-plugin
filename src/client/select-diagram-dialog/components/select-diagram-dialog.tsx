@@ -6,6 +6,7 @@ import {
 } from '../../utils/helpers';
 
 import useAuth from '../../hooks/useAuth';
+import { serverFunctions } from '../../utils/serverFunctions';
 import { CircularProgress, Container, Typography, Box } from '@mui/material';
 import { showAlertDialog } from '../../utils/alert';
 
@@ -15,6 +16,7 @@ const SelectDiagramDialog = () => {
   const { authState, authStatus } = useAuth();
   const [diagramsUrl, setDiagramsUrl] = useState('');
   const [iframeLoading, setIframeLoading] = useState(true);
+  const [isInserting, setIsInserting] = useState(false);
 
   useEffect(() => {
     if (!authState?.authorized) return;
@@ -47,21 +49,19 @@ const SelectDiagramDialog = () => {
         });
 
         try {
+          setIsInserting(true);
           const compressedImage = await compressBase64Image(data.diagramImage);
 
-          // Pass data to sidebar via BroadcastChannel and close immediately
+          // Insert directly from this dialog — works whether sidebar is open or closed
+          await serverFunctions.insertBase64ImageWithMetadata(compressedImage, metadata.toString());
+
+          // Notify sidebar to refresh its image list if it happens to be open
           const channel = new BroadcastChannel('diagram_channel');
-          channel.postMessage({
-            type: 'pendingInsertion',
-            payload: {
-              image: compressedImage,
-              metadata: metadata.toString(),
-              operation: 'insert',
-            },
-          });
+          channel.postMessage({ type: 'refreshImages' });
           channel.close();
           handleDialogClose();
         } catch (error) {
+          setIsInserting(false);
           showAlertDialog('Error preparing diagram, please try again');
           console.error('Error preparing diagram insertion', error);
         }
@@ -151,6 +151,26 @@ const SelectDiagramDialog = () => {
           }}
         >
           <CircularProgress size={40} />
+        </Box>
+      )}
+      {isInserting && (
+        <Box
+          sx={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+            zIndex: 2000,
+          }}
+        >
+          <CircularProgress size={40} />
+          <Typography variant="body2" sx={{ mt: 2 }}>Inserting diagram...</Typography>
         </Box>
       )}
       <div style={{ padding: '3px', overflowX: 'hidden', height: '100%' }}>

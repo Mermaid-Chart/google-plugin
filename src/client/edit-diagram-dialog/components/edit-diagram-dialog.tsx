@@ -13,6 +13,7 @@ const EditDiagramDialog = () => {
   const { authState, authStatus } = useAuth();
   const [diagramsUrl, setDiagramsUrl] = useState('');
   const [iframeLoading, setIframeLoading] = useState(true);
+  const [isInserting, setIsInserting] = useState(false);
 
   useEffect(() => {
     if (!authState?.authorized) return;
@@ -57,22 +58,20 @@ const EditDiagramDialog = () => {
           minor: data.minor,
         });
         try {
+          setIsInserting(true);
           const compressedImage = await compressBase64Image(data.diagramImage);
 
-          // Pass data to sidebar via BroadcastChannel and close immediately
+          // Replace directly from this dialog — works whether sidebar is open or closed
+          await serverFunctions.replaceSelectedImageWithBase64AndSize(compressedImage, metadata.toString());
+
+          // Notify sidebar to refresh its image list if it happens to be open
           const channel = new BroadcastChannel('diagram_channel');
-          channel.postMessage({
-            type: 'pendingInsertion',
-            payload: {
-              image: compressedImage,
-              metadata: metadata.toString(),
-              operation: 'replace',
-            },
-          });
+          channel.postMessage({ type: 'refreshImages' });
           channel.close();
           handleDialogClose();
         } catch (error) {
           console.error('Error preparing diagram update', error);
+          setIsInserting(false);
           showAlertDialog('Error preparing diagram update, please try again');
         }
       } else if (type === 'mermaid-chart-google-docs-back' && action === 'navigateBack') {
@@ -160,6 +159,26 @@ const EditDiagramDialog = () => {
           }}
         >
           <CircularProgress size={40} />
+        </Box>
+      )}
+      {isInserting && (
+        <Box
+          sx={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+            zIndex: 2000,
+          }}
+        >
+          <CircularProgress size={40} />
+          <Typography variant="body2" sx={{ mt: 2 }}>Inserting diagram...</Typography>
         </Box>
       )}
       <div style={{ padding: '3px', overflowX: 'hidden', height: '100%' }}>

@@ -45,8 +45,6 @@ const Sidebar = () => {
   const [toastMessage, setToastMessage] = useState('');
   const [toastSeverity, setToastSeverity] = useState<AlertColor>('success');
   const [logoutLoading, setLogoutLoading] = useState(false);
-  const insertionPollingRef = useRef<number | null>(null);
-
   useEffect(() => {
     if (!authState?.authorized) return;
     const url = buildUrl(
@@ -79,103 +77,18 @@ const Sidebar = () => {
     getImages();
   }, [getImages]);
 
-  // Check for pending insertions and process them
-  const checkAndProcessPendingInsertion = useCallback(async () => {
-    if (isProcessingInsertion) return;
-
-    try {
-      const pending = await serverFunctions.getPendingInsertion();
-      if (pending) {
-        setIsProcessingInsertion(true);
-        const result = (await serverFunctions.processPendingInsertion()) as {
-          success: boolean;
-          message: string;
-        };
-
-        if (result.success) {
-          setToastMessage('Diagram inserted successfully!');
-          setToastSeverity('success');
-          getImages();
-        } else {
-          setToastMessage(result.message || 'Error inserting diagram');
-          setToastSeverity('error');
-        }
-        setToastOpen(true);
-        setIsProcessingInsertion(false);
-      }
-    } catch (error) {
-      console.error('Error processing pending insertion', error);
-      setToastMessage('Error inserting diagram, please try again');
-      setToastSeverity('error');
-      setToastOpen(true);
-      setIsProcessingInsertion(false);
-      try {
-        await serverFunctions.clearPendingInsertion();
-      } catch (clearError) {
-        console.error('Error clearing pending insertion', clearError);
-      }
-    }
-  }, [isProcessingInsertion, getImages]);
-
-  // Listen for pending insertions from dialogs via BroadcastChannel
+  // Listen for image list refresh requests from dialogs via BroadcastChannel
   useEffect(() => {
     const channel = new BroadcastChannel('diagram_channel');
 
-    channel.onmessage = async (e) => {
-      if (e.data?.type === 'pendingInsertion') {
-        try {
-          const data = e.data.payload;
-
-          setIsProcessingInsertion(true);
-          setToastMessage('Inserting diagram...');
-          setToastSeverity('info');
-          setToastOpen(true);
-
-          // Ensure image is compressed (in case it wasn't compressed before sending)
-          const compressedImage = await compressBase64Image(data.image);
-
-          if (data.operation === 'replace') {
-            await serverFunctions.replaceSelectedImageWithBase64AndSize(compressedImage, data.metadata);
-            setToastMessage('Diagram updated successfully!');
-          } else {
-            await serverFunctions.insertBase64ImageWithMetadata(compressedImage, data.metadata);
-            setToastMessage('Diagram inserted successfully!');
-          }
-
-          setToastSeverity('success');
-          getImages();
-        } catch (error) {
-          console.error('Error processing insertion from channel', error);
-          setToastMessage('Error inserting diagram');
-          setToastSeverity('error');
-        } finally {
-          setIsProcessingInsertion(false);
-        }
+    channel.onmessage = (e) => {
+      if (e.data?.type === 'refreshImages') {
+        getImages();
       }
     };
 
     return () => channel.close();
   }, [getImages]);
-
-  // Poll for pending insertions (Backup mechanism)
-  useEffect(() => {
-    if (!authState?.authorized) return;
-
-    // Check immediately on mount
-    checkAndProcessPendingInsertion();
-
-    // Set up polling interval (check every 2 seconds)
-    insertionPollingRef.current = window.setInterval(() => {
-      checkAndProcessPendingInsertion();
-    }, 2000);
-
-    return () => {
-      if (insertionPollingRef.current !== null) {
-        clearInterval(insertionPollingRef.current);
-        insertionPollingRef.current = null;
-      }
-    };
-  }, [authState?.authorized, checkAndProcessPendingInsertion]);
 
   const handleToastClose = () => {
     setToastOpen(false);

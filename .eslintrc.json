@@ -1,0 +1,26 @@
+{
+  "root": true,
+  "parser": "@typescript-eslint/parser",
+  "extends": [
+    "plugin:prettier/recommended",
+    "eslint:recommended",
+    "plugin:@typescript-eslint/recommended"
+  ],
+  "plugins": ["prettier", "googleappsscript"],
+  "env": {
+    "googleappsscript/googleappsscript": true
+  },
+  "rules": {
+    "prettier/prettier": "error",
+    "camelcase": "warn",
+    "prefer-object-spread": "warn"
+  },
+  "ignorePatterns": ["dist", ".eslintrc.json"],
+  "settings": {
+    "import/resolver": {
+      "node": {
+        "extensions": [".js", ".ts"]
+      }
+    }
+  }
+}
